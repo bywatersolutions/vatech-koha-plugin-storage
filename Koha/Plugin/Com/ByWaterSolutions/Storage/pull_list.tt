@@ -1,0 +1,69 @@
+[% USE KohaDates %]
+[% USE Branches %]
+[% INCLUDE 'doc-head-open.inc' %]
+ <title>Koha: Kitchen Sink Plugin: Report: Patron List</title>
+ <script type="text/javascript" src="[% PLUGIN_PATH %]/datepicker/js/datepicker.js"></script>
+ <link href="[% PLUGIN_PATH %]/datepicker/css/datepicker.css" rel="stylesheet" type="text/css" />
+[% INCLUDE 'doc-head-close.inc' %]
+</head>
+<body>
+[% INCLUDE 'header.inc' %]
+[% INCLUDE 'cat-search.inc' %]
+
+<div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/plugins/plugins-home.pl">Plugins</a> &rsaquo; Kitchen Sink &rsaquo; Report &rsaquo; Patron List</div>
+
+<div id="doc3">
+    <form method="get">
+        <input type="hidden" name="class" value="[% CLASS %]"/>
+        <input type="hidden" name="method" value="[% METHOD %]"/>
+        <select name="branch">
+        [% FOREACH b IN Branches.all() %]
+            [% IF b.branchcode == branch %]
+                <option selected="selected" value="[% b.branchcode%]">[% b.branchname %]</option>
+            [% ELSE %]
+                <option value="[% b.branchcode%]">[% b.branchname %]</option>
+            [% END %]
+        [% END %]
+        </select>
+
+        <input type="submit" name="pull_list" value="Get pull list"/>
+    </form>
+
+<h5>Library: [% Branches.GetName(branch) %]</h5>
+[% IF category_code %]
+	<h5>Category Code: [% category_code %]</h5>
+[% END %]
+[% IF borrower_municipality %]
+	<h5>Municipality: [% borrower_municipality %]</h5>
+[% END %]
+<h5>Date Ran: [% date_ran | $KohaDates %]</h5>
+
+<table border=1>
+  <thead>
+    <tr> 
+      <th>Title</th>
+      <th>Author</th>
+      <th>From</th>
+      <th>To</th>
+      <th>Stocknumber</th>
+      <th>Barcode</th>
+      <th>Notes</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    [% FOREACH r IN results_loop %]
+      <tr>
+        <td>[% r.title %]</td>
+        <td>[% r.author %]</td>
+        <td>[% Branches.GetName(r.holdingbranch) %]</td>
+        <td>[% Branches.GetName(r.l_branch) %]</td>
+        <td>[% r.stocknumber %]</td>
+        <td>[% r.barcode %]</td>
+        <td>[% r.notes %]</td>
+      </tr>
+    [% END %]
+  </tbody>
+</table>
+
+[% INCLUDE 'intranet-bottom.inc' %]

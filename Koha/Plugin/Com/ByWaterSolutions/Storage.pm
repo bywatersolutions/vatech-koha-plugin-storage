@@ -14,11 +14,13 @@ use Koha::DateUtils;
 use Koha::Libraries;
 use Koha::Patron::Categories;
 use Koha::Account;
+use Koha::Items;
 use Koha::Account::Lines;
 use MARC::Record;
 use Cwd qw(abs_path);
 use URI::Escape qw(uri_unescape);
 use LWP::UserAgent;
+use DDP;
 
 ## Here we set our plugin version
 our $VERSION = "{VERSION}";
@@ -61,11 +63,14 @@ sub report {
     my ( $self, $args ) = @_;
     my $cgi = $self->{'cgi'};
 
-    unless ( $cgi->param('output') ) {
-        $self->report_step1();
-    }
+    if ( $cgi->param('courier') ) { $self->courier(); }
+    elsif ( $cgi->param('pull_list') ) { $self->pull_list(); }
+    elsif ( $cgi->param('reshelve') ) { $self->reshelve(); }
+    elsif ( $cgi->param('discard') ) { $self->discard(); }
+    elsif ( $cgi->param('accession') ) { $self->accession(); }
+    elsif ( $cgi->param('inventory') ) { $self->inventory(); }
     else {
-        $self->report_step2();
+        $self->report_step1();
     }
 }
 
@@ -87,175 +92,6 @@ sub tool {
 
 }
 
-## The existiance of a 'to_marc' subroutine means the plugin is capable
-## of converting some type of file to MARC for use from the stage records
-## for import tool
-##
-## This example takes a text file of the arbtrary format:
-## First name:Middle initial:Last name:Year of birth:Title
-## and converts each line to a very very basic MARC record
-sub to_marc {
-    my ( $self, $args ) = @_;
-
-    my $data = $args->{data};
-
-    my $batch = q{};
-
-    foreach my $line ( split( /\n/, $data ) ) {
-        my $record = MARC::Record->new();
-        my ( $firstname, $initial, $lastname, $year, $title ) = split(/:/, $line );
-
-        ## create an author field.
-        my $author_field = MARC::Field->new(
-            '100', 1, '',
-            a => "$lastname, $firstname $initial.",
-            d => "$year-"
-        );
-
-        ## create a title field.
-        my $title_field = MARC::Field->new(
-            '245', '1', '4',
-            a => "$title",
-            c => "$firstname $initial. $lastname",
-        );
-
-        $record->append_fields( $author_field, $title_field );
-
-        $batch .= $record->as_usmarc() . "\x1D";
-    }
-
-    return $batch;
-}
-
-## If your plugin can process payments online,
-## and that feature of the plugin is enabled,
-## this method will return true
-sub opac_online_payment {
-    my ( $self, $args ) = @_;
-
-    return $self->retrieve_data('enable_opac_payments') eq 'Yes';
-}
-
-## This method triggers the beginning of the payment process
-## It could result in a form displayed to the patron the is submitted
-## or go straight to a redirect to the payment service ala paypal
-sub opac_online_payment_begin {
-    my ( $self, $args ) = @_;
-    my $cgi = $self->{'cgi'};
-
-    my ( $template, $borrowernumber ) = get_template_and_user(
-        {   template_name   => abs_path( $self->mbf_path( 'opac_online_payment_begin.tt' ) ),
-            query           => $cgi,
-            type            => 'opac',
-            authnotrequired => 0,
-            is_plugin       => 1,
-        }
-    );
-
-    my @accountline_ids = $cgi->multi_param('accountline');
-
-    my $rs = Koha::Database->new()->schema()->resultset('Accountline');
-    my @accountlines = map { $rs->find($_) } @accountline_ids;
-
-    $template->param(
-        borrower             => scalar Koha::Patrons->find($borrowernumber),
-        payment_method       => scalar $cgi->param('payment_method'),
-        enable_opac_payments => $self->retrieve_data('enable_opac_payments'),
-        accountlines         => \@accountlines,
-    );
-
-
-    print $cgi->header();
-    print $template->output();
-}
-
-## This method triggers the end of the payment process
-## Should should result in displaying a page indicating
-## the success or failure of the payment.
-sub opac_online_payment_end {
-    my ( $self, $args ) = @_;
-    my $cgi = $self->{'cgi'};
-
-    my ( $template, $borrowernumber ) = get_template_and_user(
-        {
-            template_name =>
-              abs_path( $self->mbf_path('opac_online_payment_end.tt') ),
-            query           => $cgi,
-            type            => 'opac',
-            authnotrequired => 0,
-            is_plugin       => 1,
-        }
-    );
-
-    my $m;
-    my $v;
-
-    my $amount          = $cgi->param('amount');
-    my @accountline_ids = $cgi->multi_param('accountlines_id');
-
-    $m = "no_amount"       unless $amount;
-    $m = "no_accountlines" unless @accountline_ids;
-
-    if ( $amount && @accountline_ids ) {
-        my $account = Koha::Account->new( { patron_id => $borrowernumber } );
-        my @accountlines = Koha::Account::Lines->search(
-            {
-                accountlines_id => { -in => \@accountline_ids }
-            }
-        )->as_list();
-        foreach my $id (@accountline_ids) {
-            $account->pay(
-                {
-                    amount => $amount,
-                    lines  => \@accountlines,
-                    note   => "Paid via Storage ImaginaryPay",
-                }
-            );
-        }
-
-        $m = 'valid_payment';
-        $v = $amount;
-    }
-
-    $template->param(
-        borrower      => scalar Koha::Patrons->find($borrowernumber),
-        message       => $m,
-        message_value => $v,
-    );
-
-    print $cgi->header();
-    print $template->output();
-}
-
-## If your plugin needs to add some CSS to the OPAC, you'll want
-## to return that CSS here. Don't forget to wrap your CSS in <style>
-## tags. By not adding them automatically for you, you'll have a chance
-## to include external CSS files as well!
-sub opac_head {
-    my ( $self ) = @_;
-
-    return q|
-        <style>
-          body {
-            background-color: orange;
-          }
-        </style>
-    |;
-}
-
-## If your plugin needs to add some javascript in the OPAC, you'll want
-## to return that javascript here. Don't forget to wrap your javascript in
-## <script> tags. By not adding them automatically for you, you'll have a
-## chance to include other javascript files if necessary.
-sub opac_js {
-    my ( $self ) = @_;
-
-    return q|
-        <script>alert("Thanks for testing the kitchen sink plugin!");</script>
-    |;
-}
-
-## If your tool is complicated enough to needs it's own setting/configuration
 ## you will want to add a 'configure' method to your plugin like so.
 ## Here I am throwing all the logic into the 'configure' method, but it could
 ## be split up like the 'report' method is.
@@ -325,55 +161,24 @@ sub report_step1 {
 
     my $template = $self->get_template({ file => 'report-step1.tt' });
 
-    my @libraries = Koha::Libraries->search;
-    my @categories = Koha::Patron::Categories->search_limited({}, {order_by => ['description']});
-    $template->param(
-        libraries => \@libraries,
-        categories => \@categories,
-    );
-
     print $cgi->header();
     print $template->output();
 }
 
-sub report_step2 {
+sub courier {
     my ( $self, $args ) = @_;
     my $cgi = $self->{'cgi'};
 
     my $dbh = C4::Context->dbh;
 
-    my $branch                = $cgi->param('branch');
-    my $category_code         = $cgi->param('categorycode');
-    my $borrower_municipality = $cgi->param('borrower_municipality');
-    my $output                = $cgi->param('output');
-
-    my $fromDay   = $cgi->param('fromDay');
-    my $fromMonth = $cgi->param('fromMonth');
-    my $fromYear  = $cgi->param('fromYear');
-
-    my $toDay   = $cgi->param('toDay');
-    my $toMonth = $cgi->param('toMonth');
-    my $toYear  = $cgi->param('toYear');
-
-    my ( $fromDate, $toDate );
-    if ( $fromDay && $fromMonth && $fromYear && $toDay && $toMonth && $toYear )
-    {
-        $fromDate = "$fromYear-$fromMonth-$fromDay";
-        $toDate   = "$toYear-$toMonth-$toDay";
-    }
-
     my $query = "
-        SELECT firstname, surname, address, city, zipcode, city, zipcode, dateexpiry FROM borrowers 
-        WHERE branchcode LIKE '$branch'
-        AND categorycode LIKE '$category_code'
+        SELECT bt.*, title, author, barcode, itemnumber, biblionumber
+        FROM branchtransfers bt
+        LEFT JOIN items USING (itemnumber)
+        LEFT JOIN biblio USING (biblionumber)
+        WHERE datearrived IS NULL
+        ORDER BY frombranch,tobranch
     ";
-
-    if ( $fromDate && $toDate ) {
-        $query .= "
-            AND DATE( dateexpiry ) >= DATE( '$fromDate' )
-            AND DATE( dateexpiry ) <= DATE( '$toDate' )  
-        ";
-    }
 
     my $sth = $dbh->prepare($query);
     $sth->execute();
@@ -383,30 +188,251 @@ sub report_step2 {
         push( @results, $row );
     }
 
-    my $filename;
-    if ( $output eq "csv" ) {
-        print $cgi->header( -attachment => 'borrowers.csv' );
-        $filename = 'report-step2-csv.tt';
-    }
-    else {
-        print $cgi->header();
-        $filename = 'report-step2-html.tt';
-    }
-
+    print $cgi->header();
+    my $filename = 'courier.tt';
     my $template = $self->get_template({ file => $filename });
 
     $template->param(
         date_ran     => dt_from_string(),
         results_loop => \@results,
-        branch       => GetBranchName($branch),
     );
-
-    unless ( $category_code eq '%' ) {
-        $template->param( category_code => $category_code );
-    }
 
     print $template->output();
 }
+
+sub pull_list {
+    my ( $self, $args ) = @_;
+    my $cgi = $self->{'cgi'};
+
+    my $dbh = C4::Context->dbh;
+    my $branch = $cgi->param('branch') || C4::Context->userenv->{'branch'};
+
+    my $query = "
+            SELECT min(reservedate) as l_reservedate,
+            reserves.borrowernumber as borrowernumber,
+            GROUP_CONCAT(reserves.reservenotes SEPARATOR '<br/>') as notes,
+            GROUP_CONCAT(items.barcode SEPARATOR '<br/>') as barcode,
+            items.holdingbranch,
+            reserves.biblionumber,
+            reserves.branchcode as l_branch,
+            GROUP_CONCAT(DISTINCT items.itype
+                    ORDER BY items.itemnumber SEPARATOR '|') l_itype,
+            GROUP_CONCAT(DISTINCT items.location
+                    ORDER BY items.itemnumber SEPARATOR '|') l_location,
+            GROUP_CONCAT(DISTINCT items.itemcallnumber
+                    ORDER BY items.itemnumber SEPARATOR '<br/>') l_itemcallnumber,
+            GROUP_CONCAT(DISTINCT items.enumchron
+                    ORDER BY items.itemnumber SEPARATOR '<br/>') l_enumchron,
+            GROUP_CONCAT(DISTINCT items.copynumber
+                    ORDER BY items.itemnumber SEPARATOR '<br/>') l_copynumber,
+            GROUP_CONCAT(DISTINCT items.stocknumber
+                    ORDER BY items.stocknumber SEPARATOR '<br/>') l_stocknumber,
+            biblio.title,
+            biblio.author,
+            count(DISTINCT items.itemnumber) as icount,
+            count(DISTINCT reserves.borrowernumber) as rcount,
+            borrowers.firstname,
+            borrowers.surname
+    FROM reserves
+        LEFT JOIN items ON items.biblionumber=reserves.biblionumber
+        LEFT JOIN biblio ON reserves.biblionumber=biblio.biblionumber
+        LEFT JOIN branchtransfers ON items.itemnumber=branchtransfers.itemnumber
+        LEFT JOIN issues ON items.itemnumber=issues.itemnumber
+        LEFT JOIN borrowers ON reserves.borrowernumber=borrowers.borrowernumber
+    WHERE
+    reserves.found IS NULL
+    AND (reserves.itemnumber IS NULL OR reserves.itemnumber = items.itemnumber)
+    AND items.itemnumber NOT IN (SELECT itemnumber FROM branchtransfers where datearrived IS NULL)
+    AND items.itemnumber NOT IN (select itemnumber FROM reserves where found IS NOT NULL)
+    AND issues.itemnumber IS NULL
+    AND reserves.priority <> 0
+    AND reserves.suspend = 0
+    AND notforloan = 0 AND damaged = 0 AND itemlost = 0 AND withdrawn = 0
+    AND items.holdingbranch = '$branch'
+    GROUP BY reserves.biblionumber ORDER BY biblio.title
+    ";
+
+    my $sth = $dbh->prepare($query);
+    $sth->execute();
+
+    my @results;
+    while ( my $row = $sth->fetchrow_hashref() ) {
+        push( @results, $row );
+    }
+
+    print $cgi->header();
+    my $filename = 'pull_list.tt';
+    my $template = $self->get_template({ file => $filename });
+
+    $template->param(
+        date_ran     => dt_from_string(),
+        results_loop => \@results,
+        branch => $branch,
+    );
+
+    print $template->output();
+}
+
+sub reshelve {
+    my ( $self, $args ) = @_;
+    my $cgi = $self->{'cgi'};
+
+    my $barcode_list = $cgi->param('barcode_list');
+    my $check_shelve = $cgi->param('check_shelve');
+    print $cgi->header();
+    my $filename = 'reshelve.tt';
+    my $template = $self->get_template({ file => $filename });
+    if ( $barcode_list ){
+        my @barcodes = split /\s\n/, $barcode_list;
+        p @barcodes;
+        my $param_placeholder = ( '?,' ) x @barcodes; #need as many placeholders as we have barcodes
+            warn $param_placeholder;
+        $param_placeholder =~ s/,$//; #remove trailing comma
+        my @params;
+        foreach my $barcode ( @barcodes ) {
+            $barcode =~ s/\r$//; #clear carriage returns to be safe
+            push( @params, $barcode );
+        }
+
+        my $dbh = C4::Context->dbh;
+
+        my $query = "SELECT stocknumber, itemcallnumber, barcode, itemnotes, itemnotes_nonpublic, enumchron, title, author";
+        $query .= ",IF(stocknumber != '$check_shelve',CONCAT('Should be in ',stocknumber),'') AS problem" if $check_shelve;
+        $query .= "
+            FROM items
+            JOIN biblio USING (biblionumber)
+            WHERE barcode IN ($param_placeholder)
+            ORDER BY stocknumber
+    ";
+        p $query;
+
+        my $sth = $dbh->prepare($query);
+        $sth->execute(@params);
+        my @results;
+        while ( my $row = $sth->fetchrow_hashref() ) {
+            push( @results, $row );
+        }
+        $template->param(results_loop => \@results);
+        $template->param(check_shelve => $check_shelve);
+    }
+
+    $template->param(
+        date_ran     => dt_from_string(),
+    );
+
+    print $template->output();
+}
+
+sub discard {
+    my ( $self, $args ) = @_;
+    my $cgi = $self->{'cgi'};
+
+    my $dbh = C4::Context->dbh;
+
+    my $query = "
+        SELECT firstname, surname, address, city, zipcode, city, zipcode, dateexpiry FROM borrowers 
+    ";
+
+    my $sth = $dbh->prepare($query);
+    $sth->execute();
+
+    my @results;
+    while ( my $row = $sth->fetchrow_hashref() ) {
+        push( @results, $row );
+    }
+
+    print $cgi->header();
+    my $filename = 'report-step2-html.tt';
+    my $template = $self->get_template({ file => $filename });
+
+    $template->param(
+        date_ran     => dt_from_string(),
+        results_loop => \@results,
+    );
+
+    print $template->output();
+}
+
+sub accession {
+    my ( $self, $args ) = @_;
+    my $cgi = $self->{'cgi'};
+
+    my $barcode_list = $cgi->param('barcode_list');
+    my $stocknumber = $cgi->param('stocknumber');
+    print $cgi->header();
+    my $filename = 'accession.tt';
+    my $template = $self->get_template({ file => $filename });
+    if ( $barcode_list ){
+        my @barcodes = split(/\s\n/, $barcode_list);
+        if ( $stocknumber ){
+            my $items = Koha::Items->search({ barcode => { -in => \@barcodes } });
+            $items->update({stocknumber=>$stocknumber});
+        }
+        my $param_placeholder = ( '?,' ) x @barcodes; #need as many placeholders as we have barcodes
+        $param_placeholder =~ s/,$//; #remove trailing comma
+        my @params;
+        foreach my $barcode ( @barcodes ) {
+            $barcode =~ s/\r$//; #clear carriage returns to be safe
+            push( @params, $barcode );
+        }
+
+        my $dbh = C4::Context->dbh;
+
+        my $query = "
+        SELECT stocknumber, itemcallnumber, barcode, itemnotes, itemnotes_nonpublic, enumchron, title, author
+        FROM items
+        JOIN biblio USING (biblionumber)
+        WHERE barcode IN ($param_placeholder)
+        ORDER BY stocknumber
+    ";
+
+        my $sth = $dbh->prepare($query);
+        $sth->execute(@params);
+        my @results;
+        while ( my $row = $sth->fetchrow_hashref() ) {
+            push( @results, $row );
+        }
+        $template->param(results_loop => \@results);
+    }
+
+    $template->param(
+        date_ran     => dt_from_string(),
+    );
+
+    print $template->output();
+}
+
+
+sub inventory {
+    my ( $self, $args ) = @_;
+    my $cgi = $self->{'cgi'};
+
+    my $dbh = C4::Context->dbh;
+
+    my $query = "
+        SELECT firstname, surname, address, city, zipcode, city, zipcode, dateexpiry FROM borrowers 
+    ";
+
+    my $sth = $dbh->prepare($query);
+    $sth->execute();
+
+    my @results;
+    while ( my $row = $sth->fetchrow_hashref() ) {
+        push( @results, $row );
+    }
+
+    print $cgi->header();
+    my $filename = 'report-step2-html.tt';
+    my $template = $self->get_template({ file => $filename });
+
+    $template->param(
+        date_ran     => dt_from_string(),
+        results_loop => \@results,
+    );
+
+    print $template->output();
+}
+
 
 sub tool_step1 {
     my ( $self, $args ) = @_;

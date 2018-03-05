@@ -1,0 +1,59 @@
+[% USE KohaDates %]
+[% USE Branches %]
+[% INCLUDE 'doc-head-open.inc' %]
+ <title>Koha: Storage Plugin: Report: Reshelve Items</title>
+[% INCLUDE 'doc-head-close.inc' %]
+</head>
+<body>
+[% INCLUDE 'header.inc' %]
+[% INCLUDE 'cat-search.inc' %]
+
+<div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/plugins/plugins-home.pl">Plugins</a> &rsaquo; Storage &rsaquo; Report &rsaquo; Reshelve Items</div>
+
+<div id="doc3">
+    <form method="get">
+        <input type="hidden" name="class" value="[% CLASS %]"/>
+        <input type="hidden" name="method" value="[% METHOD %]"/>
+        <label for="barcode_list">Enter barcodes to move</label>
+        <textarea name="barcode_list" autocomplete="off" rows="5" required="1"></textarea>
+        <label for="stocknumber">Move to shelf</label>
+        <input type="text" name="stocknumber">
+        <input type="submit" name="accession" value="View items info"/>
+    </form>
+
+
+[% IF results_loop %]
+<h3> Results </h3>
+<h5>Date Ran: [% date_ran | $KohaDates %]</h5>
+<table border=1>
+  <thead>
+    <tr>
+      <th>Stocknumber</th>
+      <th>Callnumber</th>
+      <th>Barcode</th>
+      <th>Public Notes</th>
+      <th>Internal Notes</th>
+      <th>Enumchron</th>
+      <th>Title</th>
+      <th>Author</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    [% FOREACH r IN results_loop %]
+      <tr>
+        <td>[% r.stocknumber %]</td>
+        <td>[% r.itemcallnumber %]</td>
+        <td>[% r.barcode %]</td>
+        <td>[% r.itemnotes %]</td>
+        <td>[% r.itemnotes_nonpublic %]</td>
+        <td>[% r.enumchron %]</td>
+        <td>[% r.title %]</td>
+        <td>[% r.author %]</td>
+      </tr>
+    [% END %]
+  </tbody>
+</table>
+[% END %]
+
+[% INCLUDE 'intranet-bottom.inc' %]
