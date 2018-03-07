@@ -57,7 +57,7 @@
       <th>Enumchron</th>
       <th>Title</th>
       <th>Author</th>
-      [% IF check_shelve %]<th>Problem</th>[% END %]
+      [% IF stocknumber %]<th>Problem</th>[% END %]
     </tr>
   </thead>
 

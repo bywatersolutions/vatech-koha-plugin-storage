@@ -74,23 +74,6 @@ sub report {
     }
 }
 
-## The existance of a 'tool' subroutine means the plugin is capable
-## of running a tool. The difference between a tool and a report is
-## primarily semantic, but in general any plugin that modifies the
-## Koha database should be considered a tool
-sub tool {
-    my ( $self, $args ) = @_;
-
-    my $cgi = $self->{'cgi'};
-
-    unless ( $cgi->param('submitted') ) {
-        $self->tool_step1();
-    }
-    else {
-        $self->tool_step2();
-    }
-
-}
 
 ## you will want to add a 'configure' method to your plugin like so.
 ## Here I am throwing all the logic into the 'configure' method, but it could
@@ -357,9 +340,8 @@ sub accession {
            $items = Koha::Items->search({ barcode => { -in => \@barcodes } });
            $items->update({stocknumber=>$stocknumber});
         }
-
         $template->param(step_3 => 1);
-        $template->param(items => $items);
+        $template->param(items => $items) if $items;
 
         print $template->output();
     }
