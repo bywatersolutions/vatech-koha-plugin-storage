@@ -9,16 +9,13 @@
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'cat-search.inc' %]
 
-<div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/plugins/plugins-home.pl">Plugins</a> &rsaquo; Storage &rsaquo; Report &rsaquo; Courier List</div>
+<div id="breadcrumbs">
+    <a href="/cgi-bin/koha/mainpage.pl">Home</a>
+    &rsaquo; <a href="/cgi-bin/koha/plugins/plugins-home.pl">Plugins</a>
+    &rsaquo; <a href="/cgi-bin/koha/plugins/run.pl?class=Koha::Plugin::Com::ByWaterSolutions::Storage&method=report">Storage</a>
+    &rsaquo; <a href="/cgi-bin/koha/plugins/run.pl?class=Koha::Plugin::Com::ByWaterSolutions::Storage&method=report&courier=1">Report: Items to be transferred</a></div>
 
 <div id="doc3">
-<h5>Library: [% branch %]</h5>
-[% IF category_code %]
-	<h5>Category Code: [% category_code %]</h5>
-[% END %]
-[% IF borrower_municipality %]
-	<h5>Municipality: [% borrower_municipality %]</h5>
-[% END %]
 <h5>Date Ran: [% date_ran | $KohaDates %]</h5>
 
 <table border=1>
@@ -29,6 +26,8 @@
       <th>Title</th>
       <th>Author</th>
       <th>Barcode</th>
+      <th>Stocknumber</th>
+      <th>Enumchron</th>
       <th>Date sent</th>
     </tr>
   </thead>
@@ -41,6 +40,8 @@
         <td>[% r.title %]</td>
         <td>[% r.author %]</td>
         <td>[% r.barcode %]</td>
+        <td>[% r.stocknumber %]</td>
+        <td>[% r.enumchron %]</td>
         <td>[% r.datesent | $KohaDates %]</td>
       </tr>
     [% END %]

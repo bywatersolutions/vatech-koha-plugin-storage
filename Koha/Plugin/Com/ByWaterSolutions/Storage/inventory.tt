@@ -1,48 +1,82 @@
 [% USE KohaDates %]
+[% USE Branches %]
 [% INCLUDE 'doc-head-open.inc' %]
- <title>Koha: Kitchen Sink Plugin: Report: Patron List</title>
- <script type="text/javascript" src="[% PLUGIN_PATH %]/datepicker/js/datepicker.js"></script>
- <link href="[% PLUGIN_PATH %]/datepicker/css/datepicker.css" rel="stylesheet" type="text/css" />
+ <title>Koha: Storage Plugin: Report: Reshelve Items</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 <body>
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'cat-search.inc' %]
 
-<div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/plugins/plugins-home.pl">Plugins</a> &rsaquo; Kitchen Sink &rsaquo; Report &rsaquo; Patron List</div>
+<div id="breadcrumbs">
+    <a href="/cgi-bin/koha/mainpage.pl">Home</a>
+    &rsaquo; <a href="/cgi-bin/koha/plugins/plugins-home.pl">Plugins</a>
+    &rsaquo; <a href="/cgi-bin/koha/plugins/run.pl?class=Koha::Plugin::Com::ByWaterSolutions::Storage&method=report">Storage</a>
+    &rsaquo; <a href="/cgi-bin/koha/plugins/run.pl?class=Koha::Plugin::Com::ByWaterSolutions::Storage&method=report&inventory=1">Inventory Items</a></div>
 
 <div id="doc3">
-<h5>Library: [% branch %]</h5>
-[% IF category_code %]
-	<h5>Category Code: [% category_code %]</h5>
+    <h2>Inventory[% IF stocknumber %]: Checking [% stocknumber %][% END %]</h2>
+[% UNLESS stocknumber %]
+    <form method="get">
+        <input type="hidden" name="class" value="[% CLASS %]"/>
+        <input type="hidden" name="method" value="[% METHOD %]"/>
+        <label for"stocknumber">Confirm all items are in box:</label>
+        <input name="stocknumber" type="text" required>
+            <br clear="all">
+        <textarea required name="barcode_list" autocomplete="off" rows=5></textarea>
+        <br>
+        <input type="submit" name="inventory" value="Submit"/>
+    </form>
 [% END %]
-[% IF borrower_municipality %]
-	<h5>Municipality: [% borrower_municipality %]</h5>
-[% END %]
+
+    [% IF ( not_found.size > 0 ) %]
+    <div class="dialog alert"><p>Warning, the following barcodes were not found:</p></div>
+       <table style="margin:auto;">
+           <thead>
+               <tr><th>Barcodes not found</th></tr>
+           </thead>
+           <tbody>
+               [% FOREACH nf IN not_found %]
+                   <tr><td>[% nf |html %]</td></tr>
+               [% END %]
+            </tbody>
+        </table>
+    [% END %]
+
+[% IF items %]
 <h5>Date Ran: [% date_ran | $KohaDates %]</h5>
 
 <table border=1>
   <thead>
-    <tr> 
-      <th>Name</th>
-      <th>Street</th>
-      <th>City</th>  
-      <th>Zip Code</th>
-      <th>Expiration</th>
+    <tr>
+      <th>Stocknumber</th>
+      <th>Callnumber</th>
+      <th>Barcode</th>
+      <th>Public Notes</th>
+      <th>Internal Notes</th>
+      <th>Enumchron</th>
+      <th>Title</th>
+      <th>Author</th>
+      [% IF check_shelve %]<th>Problem</th>[% END %]
     </tr>
   </thead>
 
   <tbody>
-    [% FOREACH r IN results_loop %]
-      <tr>
-        <td>[% r.firstname %] [% r.surname %]</td>
-        <td>[% r.address %]</td>
-        <td>[% r.city %]</td>
-        <td>[% r.zipcode %]</td>
-        <td>[% r.dateexpiry | $KohaDates %]</td> 
+    [% FOREACH item IN items %]
+      <tr [% IF stocknumber != item.stocknumber %]style="color:Red;"[% END %]>
+        <td>[% item.stocknumber %]</td>
+        <td>[% item.itemcallnumber %]</td>
+        <td>[% item.barcode %]</td>
+        <td>[% item.itemnotes %]</td>
+        <td>[% item.itemnotes_nonpublic %]</td>
+        <td>[% item.enumchron %]</td>
+        <td>[% item.biblio.title %]</td>
+        <td>[% item.biblio.author %]</td>
+        [% IF stocknumber != item.stocknumber %]<td>Item belongs in: [% item.stocknumber %]</td>[% END %]
       </tr>
     [% END %]
   </tbody>
-</table> 
+</table>
+[% END %]
 
 [% INCLUDE 'intranet-bottom.inc' %]

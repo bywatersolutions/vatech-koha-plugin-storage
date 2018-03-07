@@ -8,27 +8,56 @@
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'cat-search.inc' %]
 
-<div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/plugins/plugins-home.pl">Plugins</a> &rsaquo; Storage &rsaquo; Report &rsaquo; Reshelve Items</div>
+<div id="breadcrumbs">
+    <a href="/cgi-bin/koha/mainpage.pl">Home</a>
+    &rsaquo; <a href="/cgi-bin/koha/plugins/plugins-home.pl">Plugins</a>
+    &rsaquo; <a href="/cgi-bin/koha/plugins/run.pl?class=Koha::Plugin::Com::ByWaterSolutions::Storage&method=report">Storage</a>
+    &rsaquo; <a href="/cgi-bin/koha/plugins/run.pl?class=Koha::Plugin::Com::ByWaterSolutions::Storage&method=report&accession=1">Accession/Move Items</a></div>
 
+[% IF step_1 %]
 <div id="doc3">
     <form method="get">
         <input type="hidden" name="class" value="[% CLASS %]"/>
         <input type="hidden" name="method" value="[% METHOD %]"/>
+        <input type="hidden" name="next_step" value="2"/>
         <label for="barcode_list">Enter barcodes to move</label>
         <textarea name="barcode_list" autocomplete="off" rows="5" required="1"></textarea>
         <label for="stocknumber">Move to shelf</label>
-        <input type="text" name="stocknumber">
+        <input type="text" name="stocknumber" required="1">
         <input type="submit" name="accession" value="View items info"/>
     </form>
+[% END %]
 
-
-[% IF results_loop %]
-<h3> Results </h3>
+[% IF step_2 %]
+<h3> Items to move </h3>
 <h5>Date Ran: [% date_ran | $KohaDates %]</h5>
+    [% IF ( not_found.size > 0 ) %]
+    <div class="dialog alert"><p>Warning, the following barcodes were not found:</p></div>
+       <table style="margin:auto;">
+           <thead>
+               <tr><th>Barcodes not found</th></tr>
+           </thead>
+           <tbody>
+               [% FOREACH nf IN not_found %]
+                   <tr><td>[% nf |html %]</td></tr>
+               [% END %]
+            </tbody>
+        </table>
+    [% END %]
+[% IF items.size %]
+<form method="post">
+        <input type="hidden" name="class" value="[% CLASS %]"/>
+        <input type="hidden" name="method" value="[% METHOD %]"/>
+        <input type="hidden" name="accession" value="1"/>
+        <input type="hidden" name="next_step" value="3"/>
+        <input type="hidden" name="stocknumber" value="[% stocknumber %]"/>
+        <input type="submit" name="confirm" value="Confirm changes"/>
 <table border=1>
   <thead>
     <tr>
-      <th>Stocknumber</th>
+      <th>&nbsp;</th>
+      <th>Item Stocknumber</th>
+      [% IF stocknumber && !confirm %]<th>New Stocknumber</th>[% END %]
       <th>Callnumber</th>
       <th>Barcode</th>
       <th>Public Notes</th>
@@ -40,20 +69,62 @@
   </thead>
 
   <tbody>
-    [% FOREACH r IN results_loop %]
-      <tr>
-        <td>[% r.stocknumber %]</td>
-        <td>[% r.itemcallnumber %]</td>
-        <td>[% r.barcode %]</td>
-        <td>[% r.itemnotes %]</td>
-        <td>[% r.itemnotes_nonpublic %]</td>
-        <td>[% r.enumchron %]</td>
-        <td>[% r.title %]</td>
-        <td>[% r.author %]</td>
+    [% FOREACH item IN items %]
+      <tr [% IF !confirm && item.stocknumber %]style="color:Red;"[% END %]>
+        <td><input type="checkbox" name="barcodes" value="[% item.barcode %]"></td>
+        <td>[% item.stocknumber %]</td>
+        [% IF stocknumber && !confirm %]<td>[% stocknumber %]</td>[% END %]
+        <td>[% item.itemcallnumber %]</td>
+        <td>[% item.barcode %]</td>
+        <td>[% item.itemnotes %]</td>
+        <td>[% item.itemnotes_nonpublic %]</td>
+        <td>[% item.enumchron %]</td>
+        <td>[% item.biblio.title %]</td>
+        <td>[% item.biblio.author %]</td>
       </tr>
     [% END %]
   </tbody>
 </table>
+</form>
+[% END %]
+[% END %]
+
+[% IF step_3 %]
+[% IF items %]
+<h3> Items updated </h3>
+<h5>Date Ran: [% date_ran | $KohaDates %]</h5>
+<table border=1>
+  <thead>
+    <tr>
+      <th>Item Stocknumber</th>
+      <th>Callnumber</th>
+      <th>Barcode</th>
+      <th>Public Notes</th>
+      <th>Internal Notes</th>
+      <th>Enumchron</th>
+      <th>Title</th>
+      <th>Author</th>
+    </tr>
+  </thead>
+
+  <tbody>
+    [% FOREACH item IN items %]
+      <tr>
+        <td>[% item.stocknumber %]</td>
+        <td>[% item.itemcallnumber %]</td>
+        <td>[% item.barcode %]</td>
+        <td>[% item.itemnotes %]</td>
+        <td>[% item.itemnotes_nonpublic %]</td>
+        <td>[% item.enumchron %]</td>
+        <td>[% item.biblio.title %]</td>
+        <td>[% item.biblio.author %]</td>
+      </tr>
+    [% END %]
+  </tbody>
+</table>
+[% ELSE %]
+<h1>No items changed!</h1>
+[% END %]
 [% END %]
 
 [% INCLUDE 'intranet-bottom.inc' %]

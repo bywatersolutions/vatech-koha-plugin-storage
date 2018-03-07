@@ -8,52 +8,75 @@
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'cat-search.inc' %]
 
-<div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/plugins/plugins-home.pl">Plugins</a> &rsaquo; Storage &rsaquo; Report &rsaquo; Reshelve Items</div>
+<div id="breadcrumbs">
+    <a href="/cgi-bin/koha/mainpage.pl">Home</a>
+    &rsaquo; <a href="/cgi-bin/koha/plugins/plugins-home.pl">Plugins</a>
+    &rsaquo; <a href="/cgi-bin/koha/plugins/run.pl?class=Koha::Plugin::Com::ByWaterSolutions::Storage&method=report">Storage</a>
+    &rsaquo; <a href="/cgi-bin/koha/plugins/run.pl?class=Koha::Plugin::Com::ByWaterSolutions::Storage&method=report&reshelve=1">Report: Reshelve Items</a>
+</div>
 
 <div id="doc3">
+    <h2>Reshelve report</h2>
+    [% UNLESS items %]
     <form method="get">
         <input type="hidden" name="class" value="[% CLASS %]"/>
         <input type="hidden" name="method" value="[% METHOD %]"/>
+        <label for="barcode_list">Enter items to report on:</label>
+        <br>
         <textarea required name="barcode_list" autocomplete="off" rows=5></textarea>
-        <label for"check_shelve">Check if stocknumber is:</label>
-        <input name="check_shelve" type="text">
-        <input type="submit" name="reshelve" value="View items info"/>
+        <br>
+        <input type="submit" name="reshelve" value="Submit"/>
     </form>
-
-[% IF results_loop %]
-<h5>Date Ran: [% date_ran | $KohaDates %]</h5>
-
-<table border=1>
-  <thead>
-    <tr>
-      <th>Stocknumber</th>
-      <th>Callnumber</th>
-      <th>Barcode</th>
-      <th>Public Notes</th>
-      <th>Internal Notes</th>
-      <th>Enumchron</th>
-      <th>Title</th>
-      <th>Author</th>
-      [% IF check_shelve %]<th>Problem</th>[% END %]
-    </tr>
-  </thead>
-
-  <tbody>
-    [% FOREACH r IN results_loop %]
-      <tr [% IF check_shelve && r.problem %]style="color:Red;"[% END %]>
-        <td>[% r.stocknumber %]</td>
-        <td>[% r.itemcallnumber %]</td>
-        <td>[% r.barcode %]</td>
-        <td>[% r.itemnotes %]</td>
-        <td>[% r.itemnotes_nonpublic %]</td>
-        <td>[% r.enumchron %]</td>
-        <td>[% r.title %]</td>
-        <td>[% r.author %]</td>
-        [% IF check_shelve %]<td>[% r.problem %]</td>[% END %]
-      </tr>
     [% END %]
-  </tbody>
-</table>
+
+    [% IF ( not_found.size > 0 ) %]
+    <div class="dialog alert"><p>Warning, the following barcodes were not found:</p></div>
+       <table style="margin:auto;">
+           <thead>
+               <tr><th>Barcodes not found</th></tr>
+           </thead>
+           <tbody>
+               [% FOREACH nf IN not_found %]
+                   <tr><td>[% nf |html %]</td></tr>
+               [% END %]
+            </tbody>
+        </table>
+    [% END %]
+
+    [% IF items %]
+    <h5>Date Ran: [% date_ran | $KohaDates %]</h5>
+
+    <table border=1>
+      <thead>
+        <tr>
+          <th>Stocknumber</th>
+          <th>Callnumber</th>
+          <th>Barcode</th>
+          <th>Public Notes</th>
+          <th>Internal Notes</th>
+          <th>Enumchron</th>
+          <th>Title</th>
+          <th>Author</th>
+        </tr>
+       </thead>
+
+      <tbody>
+        [% FOREACH item IN items %]
+          <tr>
+            <td>[% item.stocknumber %]</td>
+            <td>[% item.itemcallnumber %]</td>
+            <td>[% item.barcode %]</td>
+            <td>[% item.itemnotes %]</td>
+            <td>[% item.itemnotes_nonpublic %]</td>
+            <td>[% item.enumchron %]</td>
+            <td>[% item.biblio.title %]</td>
+            <td>[% item.biblio.author %]</td>
+          </tr>
+        [% END %]
+      </tbody>
+    </table>
 [% END %]
+</div>
+</body>
 
 [% INCLUDE 'intranet-bottom.inc' %]

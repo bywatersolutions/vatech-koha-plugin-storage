@@ -23,7 +23,9 @@
         <br>
         <input type="submit" name="pull_list" value="Create pull list" />
         <br>
-        <input type="submit" name="reshelve" value="Return items to shelf / check shelf" />
+        <input type="submit" name="reshelve" value="Return items to shelf" />
+        <br>
+        <input type="submit" name="inventory" value="Inventory check shelf" />
         <br>
         <input type="submit" name="discard" value="Pull discarded items" disabled="true" />
         <br>

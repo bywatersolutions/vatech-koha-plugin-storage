@@ -66,9 +66,9 @@ sub report {
     if ( $cgi->param('courier') ) { $self->courier(); }
     elsif ( $cgi->param('pull_list') ) { $self->pull_list(); }
     elsif ( $cgi->param('reshelve') ) { $self->reshelve(); }
+    elsif ( $cgi->param('inventory') ) { $self->inventory(); }
     elsif ( $cgi->param('discard') ) { $self->discard(); }
     elsif ( $cgi->param('accession') ) { $self->accession(); }
-    elsif ( $cgi->param('inventory') ) { $self->inventory(); }
     else {
         $self->report_step1();
     }
@@ -172,7 +172,7 @@ sub courier {
     my $dbh = C4::Context->dbh;
 
     my $query = "
-        SELECT bt.*, title, author, barcode, itemnumber, biblionumber
+        SELECT bt.*, title, author, barcode, itemnumber, biblionumber,enumchron, stocknumber
         FROM branchtransfers bt
         LEFT JOIN items USING (itemnumber)
         LEFT JOIN biblio USING (biblionumber)
@@ -208,49 +208,12 @@ sub pull_list {
     my $branch = $cgi->param('branch') || C4::Context->userenv->{'branch'};
 
     my $query = "
-            SELECT min(reservedate) as l_reservedate,
-            reserves.borrowernumber as borrowernumber,
-            GROUP_CONCAT(reserves.reservenotes SEPARATOR '<br/>') as notes,
-            GROUP_CONCAT(items.barcode SEPARATOR '<br/>') as barcode,
-            items.holdingbranch,
-            reserves.biblionumber,
-            reserves.branchcode as l_branch,
-            GROUP_CONCAT(DISTINCT items.itype
-                    ORDER BY items.itemnumber SEPARATOR '|') l_itype,
-            GROUP_CONCAT(DISTINCT items.location
-                    ORDER BY items.itemnumber SEPARATOR '|') l_location,
-            GROUP_CONCAT(DISTINCT items.itemcallnumber
-                    ORDER BY items.itemnumber SEPARATOR '<br/>') l_itemcallnumber,
-            GROUP_CONCAT(DISTINCT items.enumchron
-                    ORDER BY items.itemnumber SEPARATOR '<br/>') l_enumchron,
-            GROUP_CONCAT(DISTINCT items.copynumber
-                    ORDER BY items.itemnumber SEPARATOR '<br/>') l_copynumber,
-            GROUP_CONCAT(DISTINCT items.stocknumber
-                    ORDER BY items.stocknumber SEPARATOR '<br/>') l_stocknumber,
-            biblio.title,
-            biblio.author,
-            count(DISTINCT items.itemnumber) as icount,
-            count(DISTINCT reserves.borrowernumber) as rcount,
-            borrowers.firstname,
-            borrowers.surname
-    FROM reserves
-        LEFT JOIN items ON items.biblionumber=reserves.biblionumber
-        LEFT JOIN biblio ON reserves.biblionumber=biblio.biblionumber
-        LEFT JOIN branchtransfers ON items.itemnumber=branchtransfers.itemnumber
-        LEFT JOIN issues ON items.itemnumber=issues.itemnumber
-        LEFT JOIN borrowers ON reserves.borrowernumber=borrowers.borrowernumber
-    WHERE
-    reserves.found IS NULL
-    AND (reserves.itemnumber IS NULL OR reserves.itemnumber = items.itemnumber)
-    AND items.itemnumber NOT IN (SELECT itemnumber FROM branchtransfers where datearrived IS NULL)
-    AND items.itemnumber NOT IN (select itemnumber FROM reserves where found IS NOT NULL)
-    AND issues.itemnumber IS NULL
-    AND reserves.priority <> 0
-    AND reserves.suspend = 0
-    AND notforloan = 0 AND damaged = 0 AND itemlost = 0 AND withdrawn = 0
-    AND items.holdingbranch = '$branch'
-    GROUP BY reserves.biblionumber ORDER BY biblio.title
-    ";
+        SELECT *
+        FROM tmp_holdsqueue
+        JOIN biblio USING (biblionumber)
+        JOIN items USING (itemnumber)
+        WHERE pickbranch LIKE '$branch'
+        ";
 
     my $sth = $dbh->prepare($query);
     $sth->execute();
@@ -276,49 +239,52 @@ sub pull_list {
 sub reshelve {
     my ( $self, $args ) = @_;
     my $cgi = $self->{'cgi'};
-
-    my $barcode_list = $cgi->param('barcode_list');
-    my $check_shelve = $cgi->param('check_shelve');
     print $cgi->header();
     my $filename = 'reshelve.tt';
     my $template = $self->get_template({ file => $filename });
-    if ( $barcode_list ){
+    $template->param( inventory => 1, stocknumber => $cgi->param('stocknumber') ) if $cgi->param('inventory');
+
+    my $barcode_list = $cgi->param('barcode_list');
+    if( $barcode_list ) {
         my @barcodes = split /\s\n/, $barcode_list;
-        p @barcodes;
-        my $param_placeholder = ( '?,' ) x @barcodes; #need as many placeholders as we have barcodes
-            warn $param_placeholder;
-        $param_placeholder =~ s/,$//; #remove trailing comma
-        my @params;
-        foreach my $barcode ( @barcodes ) {
-            $barcode =~ s/\r$//; #clear carriage returns to be safe
-            push( @params, $barcode );
+        my @items = Koha::Items->search({ barcode => { -in => \@barcodes } });
+        $template->param( items => \@items);
+        my %found = map { lc $_->barcode => 1 } @items;
+        my @not_found;
+        foreach my $barcode ( @barcodes ){
+            push (@not_found, $barcode) unless defined $found{lc $barcode};
         }
+        $template->param( not_found => \@not_found );
 
-        my $dbh = C4::Context->dbh;
-
-        my $query = "SELECT stocknumber, itemcallnumber, barcode, itemnotes, itemnotes_nonpublic, enumchron, title, author";
-        $query .= ",IF(stocknumber != '$check_shelve',CONCAT('Should be in ',stocknumber),'') AS problem" if $check_shelve;
-        $query .= "
-            FROM items
-            JOIN biblio USING (biblionumber)
-            WHERE barcode IN ($param_placeholder)
-            ORDER BY stocknumber
-    ";
-        p $query;
-
-        my $sth = $dbh->prepare($query);
-        $sth->execute(@params);
-        my @results;
-        while ( my $row = $sth->fetchrow_hashref() ) {
-            push( @results, $row );
-        }
-        $template->param(results_loop => \@results);
-        $template->param(check_shelve => $check_shelve);
     }
 
-    $template->param(
-        date_ran     => dt_from_string(),
-    );
+    $template->param( date_ran => dt_from_string() );
+
+    print $template->output();
+}
+
+sub inventory {
+    my ( $self, $args ) = @_;
+    my $cgi = $self->{'cgi'};
+    print $cgi->header();
+    my $filename = 'inventory.tt';
+    my $template = $self->get_template({ file => $filename });
+
+    my $stocknumber  = $cgi->param('stocknumber');
+    my $barcode_list = $cgi->param('barcode_list');
+    if( $barcode_list ) {
+        my @barcodes = split /\s\n/, $barcode_list;
+        my @items = Koha::Items->search({ barcode => { -in => \@barcodes } });
+        $template->param( items => \@items);
+        my %found = map { lc $_->barcode => 1 } @items;
+        my @not_found;
+        foreach my $barcode ( @barcodes ){
+            push (@not_found, $barcode) unless defined $found{lc $barcode};
+        }
+        $template->param( not_found => \@not_found );
+    }
+
+    $template->param( date_ran => dt_from_string(), stocknumber => $stocknumber );
 
     print $template->output();
 }
@@ -357,122 +323,94 @@ sub accession {
     my ( $self, $args ) = @_;
     my $cgi = $self->{'cgi'};
 
-    my $barcode_list = $cgi->param('barcode_list');
-    my $stocknumber = $cgi->param('stocknumber');
+    my $next_step = $cgi->param('next_step');
     print $cgi->header();
     my $filename = 'accession.tt';
     my $template = $self->get_template({ file => $filename });
-    if ( $barcode_list ){
-        my @barcodes = split(/\s\n/, $barcode_list);
-        if ( $stocknumber ){
-            my $items = Koha::Items->search({ barcode => { -in => \@barcodes } });
-            $items->update({stocknumber=>$stocknumber});
+    $template->param( date_ran => dt_from_string() );
+    unless ($next_step) {
+        $template->param(step_1 => 1);
+        print $template->output();
+    } elsif ($next_step == 2) {
+        my $barcode_list = $cgi->param('barcode_list');
+        my $stocknumber = $cgi->param('stocknumber');
+        if ( $barcode_list ){
+            my @barcodes = split /\s\n/, $barcode_list;
+            my @items = Koha::Items->search({ barcode => { -in => \@barcodes } });
+            $template->param( items => \@items);
+            my %found = map { lc $_->barcode => 1 } @items;
+            my @not_found;
+            foreach my $barcode ( @barcodes ){
+               push (@not_found, $barcode) unless defined $found{lc $barcode};
+            }
+            $template->param( not_found => \@not_found );
         }
-        my $param_placeholder = ( '?,' ) x @barcodes; #need as many placeholders as we have barcodes
-        $param_placeholder =~ s/,$//; #remove trailing comma
-        my @params;
-        foreach my $barcode ( @barcodes ) {
-            $barcode =~ s/\r$//; #clear carriage returns to be safe
-            push( @params, $barcode );
+        $template->param(step_2 => 1);
+        $template->param(stocknumber => $stocknumber);
+        print $template->output();
+    } elsif ($next_step == 3) {
+        my $confirm = $cgi->param('confirm');
+        my $stocknumber = $cgi->param('stocknumber');
+        my @barcodes = $cgi->multi_param('barcodes');
+        my $items;
+        if ( $stocknumber && $confirm ){
+           $items = Koha::Items->search({ barcode => { -in => \@barcodes } });
+           $items->update({stocknumber=>$stocknumber});
         }
 
-        my $dbh = C4::Context->dbh;
+        $template->param(step_3 => 1);
+        $template->param(items => $items);
 
-        my $query = "
-        SELECT stocknumber, itemcallnumber, barcode, itemnotes, itemnotes_nonpublic, enumchron, title, author
-        FROM items
-        JOIN biblio USING (biblionumber)
-        WHERE barcode IN ($param_placeholder)
-        ORDER BY stocknumber
-    ";
-
-        my $sth = $dbh->prepare($query);
-        $sth->execute(@params);
-        my @results;
-        while ( my $row = $sth->fetchrow_hashref() ) {
-            push( @results, $row );
-        }
-        $template->param(results_loop => \@results);
+        print $template->output();
     }
 
-    $template->param(
-        date_ran     => dt_from_string(),
-    );
 
-    print $template->output();
-}
-
-
-sub inventory {
-    my ( $self, $args ) = @_;
-    my $cgi = $self->{'cgi'};
-
-    my $dbh = C4::Context->dbh;
-
-    my $query = "
-        SELECT firstname, surname, address, city, zipcode, city, zipcode, dateexpiry FROM borrowers 
-    ";
-
-    my $sth = $dbh->prepare($query);
-    $sth->execute();
-
-    my @results;
-    while ( my $row = $sth->fetchrow_hashref() ) {
-        push( @results, $row );
-    }
-
-    print $cgi->header();
-    my $filename = 'report-step2-html.tt';
-    my $template = $self->get_template({ file => $filename });
-
-    $template->param(
-        date_ran     => dt_from_string(),
-        results_loop => \@results,
-    );
-
-    print $template->output();
-}
-
-
-sub tool_step1 {
-    my ( $self, $args ) = @_;
-    my $cgi = $self->{'cgi'};
-
-    my $template = $self->get_template({ file => 'tool-step1.tt' });
-
-    print $cgi->header();
-    print $template->output();
-}
-
-sub tool_step2 {
-    my ( $self, $args ) = @_;
-    my $cgi = $self->{'cgi'};
-
-    my $template = $self->get_template({ file => 'tool-step2.tt' });
-
-    my $borrowernumber = C4::Context->userenv->{'number'};
-    my $borrower = GetMember( borrowernumber => $borrowernumber );
-    $template->param( 'victim' => $borrower );
-
-    ModMember( borrowernumber => $borrowernumber, firstname => 'Bob' );
-
-    my $dbh = C4::Context->dbh;
-
-    my $table = $self->get_qualified_table_name('mytable');
-
-    my $sth   = $dbh->prepare("SELECT DISTINCT(borrowernumber) FROM $table");
-    $sth->execute();
-    my @victims;
-    while ( my $r = $sth->fetchrow_hashref() ) {
-        push( @victims, GetMember( borrowernumber => $r->{'borrowernumber'} ) );
-    }
-    $template->param( 'victims' => \@victims );
-
-    $dbh->do( "INSERT INTO $table ( borrowernumber ) VALUES ( ? )",
-        undef, ($borrowernumber) );
-
-    print $cgi->header();
-    print $template->output();
 }
 
 1;
+
+##FIXME for future flexibility allows use of 'Holds to pull' list
+#    my $query = "
+#            SELECT min(reservedate) as l_reservedate,
+#            reserves.borrowernumber as borrowernumber,
+#            GROUP_CONCAT(reserves.reservenotes SEPARATOR '<br/>') as notes,
+#            GROUP_CONCAT(items.barcode SEPARATOR '<br/>') as barcode,
+#            items.holdingbranch,
+#            reserves.biblionumber,
+#            reserves.branchcode as l_branch,
+#            GROUP_CONCAT(DISTINCT items.itype
+#                    ORDER BY items.itemnumber SEPARATOR '|') l_itype,
+#            GROUP_CONCAT(DISTINCT items.location
+#                    ORDER BY items.itemnumber SEPARATOR '|') l_location,
+#            GROUP_CONCAT(DISTINCT items.itemcallnumber
+#                    ORDER BY items.itemnumber SEPARATOR '<br/>') l_itemcallnumber,
+#            GROUP_CONCAT(DISTINCT items.enumchron
+#                    ORDER BY items.itemnumber SEPARATOR '<br/>') l_enumchron,
+#            GROUP_CONCAT(DISTINCT items.copynumber
+#                    ORDER BY items.itemnumber SEPARATOR '<br/>') l_copynumber,
+#            GROUP_CONCAT(DISTINCT items.stocknumber
+#                    ORDER BY items.stocknumber SEPARATOR '<br/>') l_stocknumber,
+#            biblio.title,
+#            biblio.author,
+#            count(DISTINCT items.itemnumber) as icount,
+#            count(DISTINCT reserves.borrowernumber) as rcount,
+#            borrowers.firstname,
+#            borrowers.surname
+#    FROM reserves
+#        LEFT JOIN items ON items.biblionumber=reserves.biblionumber
+#        LEFT JOIN biblio ON reserves.biblionumber=biblio.biblionumber
+#        LEFT JOIN branchtransfers ON items.itemnumber=branchtransfers.itemnumber
+#        LEFT JOIN issues ON items.itemnumber=issues.itemnumber
+#        LEFT JOIN borrowers ON reserves.borrowernumber=borrowers.borrowernumber
+#    WHERE
+#    reserves.found IS NULL
+#    AND (reserves.itemnumber IS NULL OR reserves.itemnumber = items.itemnumber)
+#    AND items.itemnumber NOT IN (SELECT itemnumber FROM branchtransfers where datearrived IS NULL)
+#    AND items.itemnumber NOT IN (select itemnumber FROM reserves where found IS NOT NULL)
+#    AND issues.itemnumber IS NULL
+#    AND reserves.priority <> 0
+#    AND reserves.suspend = 0
+#    AND notforloan = 0 AND damaged = 0 AND itemlost = 0 AND withdrawn = 0
+#    AND items.holdingbranch = '$branch'
+#    GROUP BY reserves.biblionumber ORDER BY biblio.title
+#    ";

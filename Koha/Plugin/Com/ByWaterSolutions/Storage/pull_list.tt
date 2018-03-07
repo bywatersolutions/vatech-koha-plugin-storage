@@ -10,13 +10,18 @@
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'cat-search.inc' %]
 
-<div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/plugins/plugins-home.pl">Plugins</a> &rsaquo; Kitchen Sink &rsaquo; Report &rsaquo; Patron List</div>
+<div id="breadcrumbs">
+    <a href="/cgi-bin/koha/mainpage.pl">Home</a>
+    &rsaquo; <a href="/cgi-bin/koha/plugins/plugins-home.pl">Plugins</a>
+    &rsaquo; <a href="/cgi-bin/koha/plugins/run.pl?class=Koha::Plugin::Com::ByWaterSolutions::Storage&method=report">Storage</a>
+    &rsaquo; <a href="/cgi-bin/koha/plugins/run.pl?class=Koha::Plugin::Com::ByWaterSolutions::Storage&method=report&pull_list=1">Report: Pick list</a></div>
 
 <div id="doc3">
     <form method="get">
         <input type="hidden" name="class" value="[% CLASS %]"/>
         <input type="hidden" name="method" value="[% METHOD %]"/>
         <select name="branch">
+               <option [% IF branch == '%' %]selected="selected"[% END %] value="%">All branches</option>
         [% FOREACH b IN Branches.all() %]
             [% IF b.branchcode == branch %]
                 <option selected="selected" value="[% b.branchcode%]">[% b.branchname %]</option>
@@ -29,7 +34,7 @@
         <input type="submit" name="pull_list" value="Get pull list"/>
     </form>
 
-<h5>Library: [% Branches.GetName(branch) %]</h5>
+<h5>Library: [% IF branch == "%" %]All branches[% ELSE %][% Branches.GetName(branch) %][% END %]</h5>
 [% IF category_code %]
 	<h5>Category Code: [% category_code %]</h5>
 [% END %]
@@ -43,11 +48,11 @@
     <tr> 
       <th>Title</th>
       <th>Author</th>
-      <th>From</th>
-      <th>To</th>
+      <th>Pick branch</th>
       <th>Stocknumber</th>
+      <th>Enumchron</th>
       <th>Barcode</th>
-      <th>Notes</th>
+      <th>Reserve Notes</th>
     </tr>
   </thead>
 
@@ -56,9 +61,9 @@
       <tr>
         <td>[% r.title %]</td>
         <td>[% r.author %]</td>
-        <td>[% Branches.GetName(r.holdingbranch) %]</td>
-        <td>[% Branches.GetName(r.l_branch) %]</td>
+        <td>[% Branches.GetName(r.pickbranch) %]</td>
         <td>[% r.stocknumber %]</td>
+        <td>[% r.enumchron %]</td>
         <td>[% r.barcode %]</td>
         <td>[% r.notes %]</td>
       </tr>
