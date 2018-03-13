@@ -20,7 +20,6 @@ use MARC::Record;
 use Cwd qw(abs_path);
 use URI::Escape qw(uri_unescape);
 use LWP::UserAgent;
-use DDP;
 
 ## Here we set our plugin version
 our $VERSION = "{VERSION}";

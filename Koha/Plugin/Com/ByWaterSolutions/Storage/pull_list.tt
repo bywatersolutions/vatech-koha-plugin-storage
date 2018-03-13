@@ -49,6 +49,7 @@
       <th>Title</th>
       <th>Author</th>
       <th>Pick branch</th>
+      <th>Item call number</th>
       <th>Stocknumber</th>
       <th>Enumchron</th>
       <th>Barcode</th>
@@ -62,6 +63,7 @@
         <td>[% r.title %]</td>
         <td>[% r.author %]</td>
         <td>[% Branches.GetName(r.pickbranch) %]</td>
+        <td>[% r.itemcallnumber %]</td>
         <td>[% r.stocknumber %]</td>
         <td>[% r.enumchron %]</td>
         <td>[% r.barcode %]</td>
