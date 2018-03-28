@@ -190,11 +190,11 @@ sub pull_list {
     my $branch = $cgi->param('branch') || C4::Context->userenv->{'branch'};
 
     my $query = "
-        SELECT *
+        SELECT *, tmp_holdsqueue AS r_notes
         FROM tmp_holdsqueue
         JOIN biblio USING (biblionumber)
         JOIN items USING (itemnumber)
-        WHERE pickbranch LIKE '$branch'
+        WHERE tmp_holdsqueue.holdingbranch LIKE '$branch'
         ";
 
     my $sth = $dbh->prepare($query);
@@ -213,6 +213,7 @@ sub pull_list {
         date_ran     => dt_from_string(),
         results_loop => \@results,
         branch => $branch,
+        num_rows => $sth->rows,
     );
 
     print $template->output();
@@ -229,7 +230,10 @@ sub reshelve {
     my $barcode_list = $cgi->param('barcode_list');
     if( $barcode_list ) {
         my @barcodes = split /\s\n/, $barcode_list;
-        my @items = Koha::Items->search({ barcode => { -in => \@barcodes } });
+        my @items = Koha::Items->search(
+            { barcode => { -in => \@barcodes } },
+            { order_by => [ \['SUBSTRING_INDEX(me.stocknumber," ",1)'], \['SUBSTRING_INDEX(me.stocknumber," ",-1)'] ] }
+        );
         $template->param( items => \@items);
         my %found = map { lc $_->barcode => 1 } @items;
         my @not_found;

@@ -51,12 +51,12 @@
         <tr>
           <th>Stocknumber</th>
           <th>Callnumber</th>
-          <th>Barcode</th>
-          <th>Public Notes</th>
-          <th>Internal Notes</th>
           <th>Enumchron</th>
           <th>Title</th>
           <th>Author</th>
+          <th>Barcode</th>
+          <th>Status</th>
+          <th>Transit status</th>
         </tr>
        </thead>
 
@@ -65,12 +65,17 @@
           <tr>
             <td>[% item.stocknumber %]</td>
             <td>[% item.itemcallnumber %]</td>
-            <td>[% item.barcode %]</td>
-            <td>[% item.itemnotes %]</td>
-            <td>[% item.itemnotes_nonpublic %]</td>
             <td>[% item.enumchron %]</td>
             <td>[% item.biblio.title %]</td>
             <td>[% item.biblio.author %]</td>
+            <td>[% item.barcode %]</td>
+            <td>
+                [%- IF item.itemlost -%] Lost [%- END- %]
+                [%- IF item.withdrawn -%] Withdrawn [%- END- %]
+                [%- IF item.damaged -%] Damaged [%- END- %]
+                [%- IF item.onloan -%] Checked out [%- END- %]
+            </td>
+            <td>[% SET trans = item.get_transfer %][% IF trans %]In transit from [% Branches.GetName(trans.frombranch) %] to [% Branches.GetName(trans.tobranch) %] since [% trans.datesent %][% END %]</td>
           </tr>
         [% END %]
       </tbody>

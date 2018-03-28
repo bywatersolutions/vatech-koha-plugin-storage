@@ -35,25 +35,22 @@
     </form>
 
 <h5>Library: [% IF branch == "%" %]All branches[% ELSE %][% Branches.GetName(branch) %][% END %]</h5>
-[% IF category_code %]
-	<h5>Category Code: [% category_code %]</h5>
-[% END %]
-[% IF borrower_municipality %]
-	<h5>Municipality: [% borrower_municipality %]</h5>
-[% END %]
 <h5>Date Ran: [% date_ran | $KohaDates %]</h5>
+<h5>[% IF num_rows %][% num_rows %] holds found[% ELSE %]No holds found[% END %]</h5>
 
 <table border=1>
   <thead>
-    <tr> 
+    <tr>
       <th>Title</th>
       <th>Author</th>
-      <th>Pick branch</th>
       <th>Item call number</th>
+      <th>Shelving location</th>
       <th>Stocknumber</th>
       <th>Enumchron</th>
       <th>Barcode</th>
-      <th>Reserve Notes</th>
+      <th>Requester</th>
+      <th>Destination branch</th>
+      <th>Hold Notes</th>
     </tr>
   </thead>
 
@@ -62,12 +59,14 @@
       <tr>
         <td>[% r.title %]</td>
         <td>[% r.author %]</td>
-        <td>[% Branches.GetName(r.pickbranch) %]</td>
         <td>[% r.itemcallnumber %]</td>
+        <td>[% AuthorisedValues.GetByCode('LOC',r.location,0) %]</td>
         <td>[% r.stocknumber %]</td>
         <td>[% r.enumchron %]</td>
-        <td>[% r.barcode %]</td>
-        <td>[% r.notes %]</td>
+        <td><a href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% r.biblionumber %]" target="_blank">[% r.barcode %]</a></td>
+        <td><a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% r.borrowernumber %]">[% r.firstname %] [% r.surname %]</a></td>
+        <td>[% Branches.GetName(r.pickbranch) %]</td>
+        <td>[% r.r_notes %]</td>
       </tr>
     [% END %]
   </tbody>
