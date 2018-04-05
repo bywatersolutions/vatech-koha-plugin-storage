@@ -7,6 +7,8 @@
 <body>
 [% INCLUDE 'header.inc' %]
 [% INCLUDE 'cat-search.inc' %]
+<link rel="stylesheet" type="text/css" href="[% interface %]/[% theme %]/css/datatables.css" />
+[% INCLUDE 'datatables.inc' %]
 
 <div id="breadcrumbs">
     <a href="/cgi-bin/koha/mainpage.pl">Home</a>
@@ -51,8 +53,10 @@
         <input type="hidden" name="accession" value="1"/>
         <input type="hidden" name="next_step" value="3"/>
         <input type="hidden" name="stocknumber" value="[% stocknumber %]"/>
+        <input type="button" name="select_all" id="select_all" value="Select all"/>
+        <input type="button" name="select_none" id="select_none" value="Select none"/>
         <input type="submit" name="confirm" value="Confirm changes"/>
-<table border=1>
+<table id="storage_accession" border=1>
   <thead>
     <tr>
       <th>&nbsp;</th>
@@ -71,7 +75,7 @@
   <tbody>
     [% FOREACH item IN items %]
       <tr [% IF !confirm && item.stocknumber %]style="color:Red;"[% END %]>
-        <td><input type="checkbox" name="barcodes" value="[% item.barcode %]"></td>
+        <td><input class="confirm_item" type="checkbox" name="barcodes" value="[% item.barcode %]"></td>
         <td>[% item.stocknumber %]</td>
         [% IF stocknumber && !confirm %]<td>[% stocknumber %]</td>[% END %]
         <td>[% item.itemcallnumber %]</td>
@@ -93,7 +97,7 @@
 [% IF items %]
 <h3> Items updated </h3>
 <h5>Date Ran: [% date_ran | $KohaDates %]</h5>
-<table border=1>
+<table id="storage_accession" border=1>
   <thead>
     <tr>
       <th>Item Stocknumber</th>
@@ -126,5 +130,19 @@
 <h1>No items changed!</h1>
 [% END %]
 [% END %]
+<script>
+$(document).ready(function() {
+  var my_table = $("#storage_accession").dataTable($.extend(true, {}, dataTablesDefaults, {
+    // dataTablesDefaults contain default options and strings defined in datables-strings.inc
+    // You can put your specific datatables options here
+  }));
 
+  $("#select_all").click(function(){
+      $(".confirm_item").prop("checked",true);
+  });
+  $("#select_none").click(function(){
+      $(".confirm_item").prop("checked",false);
+  });
+});
+</script>
 [% INCLUDE 'intranet-bottom.inc' %]
