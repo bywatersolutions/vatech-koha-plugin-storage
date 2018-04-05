@@ -23,7 +23,7 @@
         <label for"stocknumber">Confirm all items are in box:</label>
         <input name="stocknumber" type="text" required>
             <br clear="all">
-        <textarea required name="barcode_list" autocomplete="off" rows=5></textarea>
+        <textarea name="barcode_list" autocomplete="off" rows=5></textarea>
         <br>
         <input type="submit" name="inventory" value="Submit"/>
     </form>
@@ -57,7 +57,9 @@
       <th>Enumchron</th>
       <th>Title</th>
       <th>Author</th>
-      [% IF stocknumber %]<th>Problem</th>[% END %]
+      <th>Status</th>
+      <th>Transit status</th>
+      <th>Problem</th>
     </tr>
   </thead>
 
@@ -72,7 +74,34 @@
         <td>[% item.enumchron %]</td>
         <td>[% item.biblio.title %]</td>
         <td>[% item.biblio.author %]</td>
-        [% IF stocknumber != item.stocknumber %]<td>Item belongs in: [% item.stocknumber %]</td>[% END %]
+        <td>
+            [%- IF item.itemlost -%] Lost [%- END- %]
+            [%- IF item.withdrawn -%] Withdrawn [%- END- %]
+            [%- IF item.damaged -%] Damaged [%- END- %]
+            [%- IF item.onloan -%] Checked out [%- END- %]
+        </td>
+        <td>[% SET trans = item.get_transfer %][% IF trans %]In transit from [% Branches.GetName(trans.frombranch) %] to [% Branches.GetName(trans.tobranch) %] since [% trans.datesent %][% END %]</td>
+        <td>[% IF stocknumber != item.stocknumber %]Item belongs in: [% item.stocknumber %][% END %]</td>
+      </tr>
+    [% END %]
+    [% FOREACH item IN unscanned_items %]
+      <tr style="color:Purple;">
+        <td>[% item.stocknumber %]</td>
+        <td>[% item.itemcallnumber %]</td>
+        <td>[% item.barcode %]</td>
+        <td>[% item.itemnotes %]</td>
+        <td>[% item.itemnotes_nonpublic %]</td>
+        <td>[% item.enumchron %]</td>
+        <td>[% item.biblio.title %]</td>
+        <td>[% item.biblio.author %]</td>
+        <td>
+            [%- IF item.itemlost -%] Lost [%- END- %]
+            [%- IF item.withdrawn -%] Withdrawn [%- END- %]
+            [%- IF item.damaged -%] Damaged [%- END- %]
+            [%- IF item.onloan -%] Checked out [%- END- %]
+        </td>
+        <td>[% SET trans = item.get_transfer %][% IF trans %]In transit from [% Branches.GetName(trans.frombranch) %] to [% Branches.GetName(trans.tobranch) %] since [% trans.datesent %][% END %]</td>
+        <td>NOT SCANNED</td>
       </tr>
     [% END %]
   </tbody>
