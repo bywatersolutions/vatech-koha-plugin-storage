@@ -191,7 +191,7 @@ sub pull_list {
     my $branch = $cgi->param('branch') || C4::Context->userenv->{'branch'};
 
     my $query = "
-        SELECT *, tmp_holdsqueue AS r_notes
+        SELECT *, tmp_holdsqueue.notes AS r_notes
         FROM tmp_holdsqueue
         JOIN biblio USING (biblionumber)
         JOIN items USING (itemnumber)
