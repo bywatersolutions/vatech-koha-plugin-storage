@@ -1,8 +1,6 @@
 [% USE KohaDates %]
 [% INCLUDE 'doc-head-open.inc' %]
- <title>Koha: Kitchen Sink Plugin: Report: Patron List</title>
- <script type="text/javascript" src="[% PLUGIN_PATH %]/datepicker/js/datepicker.js"></script>
- <link href="[% PLUGIN_PATH %]/datepicker/css/datepicker.css" rel="stylesheet" type="text/css" />
+ <title>Koha: Storage: Discard Report</title>
 [% INCLUDE 'doc-head-close.inc' %]
 </head>
 <body>
@@ -12,37 +10,44 @@
 <div id="breadcrumbs"><a href="/cgi-bin/koha/mainpage.pl">Home</a> &rsaquo; <a href="/cgi-bin/koha/plugins/plugins-home.pl">Plugins</a> &rsaquo; Kitchen Sink &rsaquo; Report &rsaquo; Patron List</div>
 
 <div id="doc3">
-<h5>Library: [% branch %]</h5>
-[% IF category_code %]
-	<h5>Category Code: [% category_code %]</h5>
-[% END %]
-[% IF borrower_municipality %]
-	<h5>Municipality: [% borrower_municipality %]</h5>
-[% END %]
-<h5>Date Ran: [% date_ran | $KohaDates %]</h5>
+   <form>
+      <input type="hidden" name="class" value="[% CLASS %]"/>
+      <input type="hidden" name="method" value="[% METHOD %]"/>
+      <input type="hidden" name="discard" value="1"/>
 
+      <input type="text" name="min_call" value="[% min_call %]">
+      <input type="text" name="max_call" value="[% max_call %]">
+      <input type="submit" name="csv_out" value="Export to CSV">
+      <input type="submit" name="update_results" value="Display results">
+    </form>
+
+
+[% IF items %]
 <table border=1>
   <thead>
     <tr> 
-      <th>Name</th>
-      <th>Street</th>
-      <th>City</th>  
-      <th>Zip Code</th>
-      <th>Expiration</th>
+      <th>Call number</th>
+      <th>Stock number</th>
+      <th>Location</th>
+      <th>Barcode</th>
+      <th>Title</th>  
+      <th>Author</th>
     </tr>
   </thead>
 
   <tbody>
-    [% FOREACH r IN results_loop %]
+    [% FOREACH item IN items %]
       <tr>
-        <td>[% r.firstname %] [% r.surname %]</td>
-        <td>[% r.address %]</td>
-        <td>[% r.city %]</td>
-        <td>[% r.zipcode %]</td>
-        <td>[% r.dateexpiry | $KohaDates %]</td> 
+        <td>[% item.itemcallnumber %]</td>
+        <td>[% item.stocknumber %]</td>
+        <td>[% item.holdingbranch %]</td>
+        <td>[% item.barcode %]</td>
+        <td>[% item.biblio.title %]</td>
+        <td>[% item.biblio.author %]</td>
       </tr>
     [% END %]
   </tbody>
 </table> 
+[% END %]
 
 [% INCLUDE 'intranet-bottom.inc' %]

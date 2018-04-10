@@ -27,7 +27,7 @@
         <br>
         <input type="submit" name="inventory" value="Inventory check shelf" />
         <br>
-        <input type="submit" name="discard" value="Pull discarded items" disabled="true" />
+        <input type="submit" name="discard" value="Pull discarded items" />
         <br>
         <input type="submit" name="accession" value="Move items to box" />
 

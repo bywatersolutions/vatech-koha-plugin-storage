@@ -16,6 +16,7 @@ use Koha::Patron::Categories;
 use Koha::Account;
 use Koha::Items;
 use Koha::Account::Lines;
+use C4::ClassSource;
 use MARC::Record;
 use Cwd qw(abs_path);
 use URI::Escape qw(uri_unescape);
@@ -282,28 +283,34 @@ sub inventory {
 sub discard {
     my ( $self, $args ) = @_;
     my $cgi = $self->{'cgi'};
+    my $min_call = $cgi->param('min_call');
+    my $max_call = $cgi->param('max_call');
+    my $out_csv = $cgi->param('csv_out');
+    my $class_source = $cgi->param('class_source') // C4::Context->preference('DefaultClassificationSource');
 
-    my $dbh = C4::Context->dbh;
+    my $min_cnsort = GetClassSort($class_source,undef,$min_call);
+    my $max_cnsort = GetClassSort($class_source,undef,$max_call);
 
-    my $query = "
-        SELECT firstname, surname, address, city, zipcode, city, zipcode, dateexpiry FROM borrowers 
-    ";
-
-    my $sth = $dbh->prepare($query);
-    $sth->execute();
-
-    my @results;
-    while ( my $row = $sth->fetchrow_hashref() ) {
-        push( @results, $row );
+    my $filename;
+    if ( $out_csv ) {
+        $filename = 'discard_csv.tt';
+        my $filedate = output_pref({dt=>dt_from_string(),dateonly=>1,dateformat=>'sql'});
+        print $cgi->header( -attachment => 'discard_list'.$filedate.'.csv' ) if $out_csv;
+    } else {
+        print $cgi->header();
+        $filename = 'discard.tt';
     }
-
-    print $cgi->header();
-    my $filename = 'report-step2-html.tt';
     my $template = $self->get_template({ file => $filename });
 
+    if( $min_call && $max_call ){
+        my $items = Koha::Items->search({cn_sort => {'>='=>$min_cnsort, '<='=>$max_cnsort} });
+        $template->param( items => $items );
+    }
+
+
     $template->param(
-        date_ran     => dt_from_string(),
-        results_loop => \@results,
+        max_call => $max_call,
+        min_call => $min_call,
     );
 
     print $template->output();
