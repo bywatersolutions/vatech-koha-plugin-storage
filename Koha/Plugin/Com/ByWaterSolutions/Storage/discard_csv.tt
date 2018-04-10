@@ -1,0 +1,3 @@
+"Call number","Stocknumber","Location","Barcode","Title","Author"
+[% FOREACH item IN items %]"[% item.itemcallnumber %]","[% item.stocknumber %]","[% item.holdingbranch %]","[% item.barcode %]","[% item.biblio.title %]","[% item.biblio.author %]"
+[% END %]
