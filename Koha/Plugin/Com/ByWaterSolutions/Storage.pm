@@ -303,7 +303,11 @@ sub discard {
     my $template = $self->get_template({ file => $filename });
 
     if( $min_call && $max_call ){
-        my $items = Koha::Items->search({cn_sort => {'>='=>$min_cnsort, '<='=>$max_cnsort} });
+        my $items = Koha::Items->search({
+                cn_sort => {'>='=>$min_cnsort, '<='=>$max_cnsort},
+                holdingbranch => { '-in' => ['rstore','wrhse'] },
+                withdrawn => 1
+            });
         $template->param( items => $items );
     }
 
