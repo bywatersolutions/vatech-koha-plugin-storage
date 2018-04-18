@@ -35,6 +35,7 @@
     <tr> 
       <th>Call number</th>
       <th>Stock number</th>
+      <th>Holding branch</th>
       <th>Location</th>
       <th>Item type</th>
       <th>Barcode</th>
@@ -49,6 +50,7 @@
         <td>[% item.itemcallnumber %]</td>
         <td>[% item.stocknumber %]</td>
         <td>[% item.holdingbranch %]</td>
+        <td>[% item.location %]</td>
         <td>[% item.itype %]</td>
         <td>[% item.barcode %]</td>
         <td>[% item.biblio.title %]</td>
