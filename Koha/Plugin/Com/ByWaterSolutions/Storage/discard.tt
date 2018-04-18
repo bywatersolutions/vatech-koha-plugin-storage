@@ -20,7 +20,9 @@
       <input type="hidden" name="method" value="[% METHOD %]"/>
       <input type="hidden" name="discard" value="1"/>
 
+      <label  for="min_call">Minimum call number</label>
       <input type="text" name="min_call" value="[% min_call %]">
+      <label  for="max_call">Maximum call number</label>
       <input type="text" name="max_call" value="[% max_call %]">
       <input type="submit" name="csv_out" value="Export to CSV">
       <input type="submit" name="update_results" value="Display results">
@@ -34,8 +36,9 @@
       <th>Call number</th>
       <th>Stock number</th>
       <th>Location</th>
+      <th>Item type</th>
       <th>Barcode</th>
-      <th>Title</th>  
+      <th>Title</th>
       <th>Author</th>
     </tr>
   </thead>
@@ -46,6 +49,7 @@
         <td>[% item.itemcallnumber %]</td>
         <td>[% item.stocknumber %]</td>
         <td>[% item.holdingbranch %]</td>
+        <td>[% item.itype %]</td>
         <td>[% item.barcode %]</td>
         <td>[% item.biblio.title %]</td>
         <td>[% item.biblio.author %]</td>

@@ -196,6 +196,7 @@ sub pull_list {
         JOIN biblio USING (biblionumber)
         JOIN items USING (itemnumber)
         WHERE tmp_holdsqueue.holdingbranch LIKE '$branch'
+        ORDER BY SUBSTRING_INDEX(items.stocknumber,' ',1), SUBSTRING_INDEX(items.stocknumber,' ',-1)
         ";
 
     my $sth = $dbh->prepare($query);
@@ -307,7 +308,9 @@ sub discard {
                 cn_sort => {'>='=>$min_cnsort, '<='=>$max_cnsort},
                 holdingbranch => { '-in' => ['rstore','wrhse'] },
                 withdrawn => 1
-            });
+            },
+            { order_by => [ \['SUBSTRING_INDEX(me.stocknumber," ",1)'], \['SUBSTRING_INDEX(me.stocknumber," ",-1)']     ] }
+            );
         $template->param( items => $items );
     }
 
