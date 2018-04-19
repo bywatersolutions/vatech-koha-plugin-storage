@@ -13,52 +13,56 @@
     &rsaquo; <a href="/cgi-bin/koha/plugins/run.pl?class=Koha::Plugin::Com::ByWaterSolutions::Storage&method=report">Storage</a>
     &rsaquo; <a href="/cgi-bin/koha/plugins/run.pl?class=Koha::Plugin::Com::ByWaterSolutions::Storage&method=report&discard=1">Report: Discard Report</a>
 </div>
-
 <div id="doc3">
-   <form>
-      <input type="hidden" name="class" value="[% CLASS %]"/>
-      <input type="hidden" name="method" value="[% METHOD %]"/>
-      <input type="hidden" name="discard" value="1"/>
+    <div id="discard_form" class="noprint">
+       <form>
+          <input type="hidden" name="class" value="[% CLASS %]"/>
+          <input type="hidden" name="method" value="[% METHOD %]"/>
+          <input type="hidden" name="discard" value="1"/>
 
-      <label  for="min_call">Minimum call number</label>
-      <input type="text" name="min_call" value="[% min_call %]">
-      <label  for="max_call">Maximum call number</label>
-      <input type="text" name="max_call" value="[% max_call %]">
-      <input type="submit" name="csv_out" value="Export to CSV">
-      <input type="submit" name="update_results" value="Display results">
-    </form>
+          <label  for="call_nums">Enter call numbers (one per line)</label>
+          <br />
+          <textarea name="call_nums" cols="30" rows="10">[% call_nums %]</textarea>
+          <br />
+          <input type="submit" name="csv_out" value="Export to CSV">
+          <input type="submit" name="update_results" value="Display results">
+        </form>
+    </div>
 
+    [% IF items %]
+    <div id="discard_results">
+        <hr>
+        <h3>[% items.size %] items found </h3>
+        <hr>
+        <table border=1>
+          <thead>
+            <tr>
+              <th>Stock number</th>
+              <th>Barcode</th>
+              <th>Call number</th>
+              <th>Volume</th>
+              <th>Location</th>
+              <th>Holding branch</th>
+              <th>Title</th>
+            </tr>
+          </thead>
 
-[% IF items %]
-<table border=1>
-  <thead>
-    <tr> 
-      <th>Call number</th>
-      <th>Stock number</th>
-      <th>Holding branch</th>
-      <th>Location</th>
-      <th>Item type</th>
-      <th>Barcode</th>
-      <th>Title</th>
-      <th>Author</th>
-    </tr>
-  </thead>
-
-  <tbody>
-    [% FOREACH item IN items %]
-      <tr>
-        <td>[% item.itemcallnumber %]</td>
-        <td>[% item.stocknumber %]</td>
-        <td>[% item.holdingbranch %]</td>
-        <td>[% item.location %]</td>
-        <td>[% item.itype %]</td>
-        <td>[% item.barcode %]</td>
-        <td>[% item.biblio.title %]</td>
-        <td>[% item.biblio.author %]</td>
-      </tr>
+          <tbody>
+            [% FOREACH item IN items %]
+              <tr>
+                <td>[% item.stocknumber %]</td>
+                <td>[% item.barcode %]</td>
+                <td>[% item.itemcallnumber %]</td>
+                <td>[% item.enumchron %]</td>
+                <td>[% item.location %]</td>
+                <td>[% item.holdingbranch %]</td>
+                <td>[% item.biblio.title %]</td>
+              </tr>
+            [% END %]
+          </tbody>
+        </table>
+    </div>
     [% END %]
-  </tbody>
-</table> 
-[% END %]
+</div>
 
 [% INCLUDE 'intranet-bottom.inc' %]

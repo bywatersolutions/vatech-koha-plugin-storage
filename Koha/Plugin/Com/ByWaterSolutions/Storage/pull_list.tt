@@ -41,13 +41,12 @@
 <table border=1>
   <thead>
     <tr>
-      <th>Title</th>
-      <th>Author</th>
-      <th>Item call number</th>
-      <th>Shelving location</th>
       <th>Stocknumber</th>
-      <th>Enumchron</th>
       <th>Barcode</th>
+      <th>Item call number</th>
+      <th>Enumchron</th>
+      <th>Title</th>
+      <th>Shelving location</th>
       <th>Requester</th>
       <th>Destination branch</th>
       <th>Hold Notes</th>
@@ -57,13 +56,12 @@
   <tbody>
     [% FOREACH r IN results_loop %]
       <tr>
-        <td>[% r.title %]</td>
-        <td>[% r.author %]</td>
-        <td>[% r.itemcallnumber %]</td>
-        <td>[% AuthorisedValues.GetByCode('LOC',r.location,0) %]</td>
         <td>[% r.stocknumber %]</td>
-        <td>[% r.enumchron %]</td>
         <td><a href="/cgi-bin/koha/catalogue/detail.pl?biblionumber=[% r.biblionumber %]" target="_blank">[% r.barcode %]</a></td>
+        <td>[% r.itemcallnumber %]</td>
+        <td>[% r.enumchron %]</td>
+        <td>[% r.title.substr(0,20) %]</td>
+        <td>[% AuthorisedValues.GetByCode('LOC',r.location,0) %]</td>
         <td><a href="/cgi-bin/koha/members/moremember.pl?borrowernumber=[% r.borrowernumber %]">[% r.firstname %] [% r.surname %]</a></td>
         <td>[% Branches.GetName(r.pickbranch) %]</td>
         <td>[% r.r_notes %]</td>

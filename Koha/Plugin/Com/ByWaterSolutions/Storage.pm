@@ -21,6 +21,7 @@ use MARC::Record;
 use Cwd qw(abs_path);
 use URI::Escape qw(uri_unescape);
 use LWP::UserAgent;
+use List::MoreUtils qw/uniq/;
 
 ## Here we set our plugin version
 our $VERSION = "{VERSION}";
@@ -284,13 +285,9 @@ sub inventory {
 sub discard {
     my ( $self, $args ) = @_;
     my $cgi = $self->{'cgi'};
-    my $min_call = $cgi->param('min_call');
-    my $max_call = $cgi->param('max_call');
+    my $call_nums = $cgi->param('call_nums');
     my $out_csv = $cgi->param('csv_out');
     my $class_source = $cgi->param('class_source') // C4::Context->preference('DefaultClassificationSource');
-
-    my $min_cnsort = GetClassSort($class_source,undef,$min_call);
-    my $max_cnsort = GetClassSort($class_source,undef,$max_call);
 
     my $filename;
     if ( $out_csv ) {
@@ -303,21 +300,26 @@ sub discard {
     }
     my $template = $self->get_template({ file => $filename });
 
-    if( $min_call && $max_call ){
-        my $items = Koha::Items->search({
-                cn_sort => {'>='=>$min_cnsort, '<='=>$max_cnsort},
-                holdingbranch => { '-in' => ['rstore','wrhse'] },
-                withdrawn => 1
-            },
-            { order_by => [ \['SUBSTRING_INDEX(me.stocknumber," ",1)'], \['SUBSTRING_INDEX(me.stocknumber," ",-1)']     ] }
+    if( $call_nums ){
+        push my @call_numbers, uniq( split(/\s\n/, $call_nums) );
+        my @items;
+        foreach my $call_number ( @call_numbers) {
+            my @found_items = Koha::Items->search({
+                    itemcallnumber => $call_number,
+                    holdingbranch => { '-in' => ['rstore','wrhse'] },
+                    withdrawn => 1
+                },
+                { order_by => [ \['SUBSTRING_INDEX(me.stocknumber," ",1)'], \['SUBSTRING_INDEX(me.stocknumber," ",-1)']     ] }
             );
-        $template->param( items => $items );
+            push (@items, @found_items) if @found_items;
+        }
+        $template->param( items => \@items );
+
     }
 
 
     $template->param(
-        max_call => $max_call,
-        min_call => $min_call,
+        call_nums => $call_nums,
     );
 
     print $template->output();
