@@ -53,7 +53,6 @@
           <th>Callnumber</th>
           <th>Enumchron</th>
           <th>Title</th>
-          <th>Author</th>
           <th>Barcode</th>
           <th>Status</th>
           <th>Transit status</th>
@@ -67,7 +66,6 @@
             <td>[% item.itemcallnumber %]</td>
             <td>[% item.enumchron %]</td>
             <td>[% item.biblio.title %]</td>
-            <td>[% item.biblio.author %]</td>
             <td>[% item.barcode %]</td>
             <td>
                 [%- IF item.itemlost -%] Lost [%- END- %]

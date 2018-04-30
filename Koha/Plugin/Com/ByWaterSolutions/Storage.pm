@@ -303,16 +303,16 @@ sub discard {
     if( $call_nums ){
         push my @call_numbers, uniq( split(/\s\n/, $call_nums) );
         my @items;
-        foreach my $call_number ( @call_numbers) {
+#        foreach my $call_number ( @call_numbers) {
             my @found_items = Koha::Items->search({
-                    itemcallnumber => $call_number,
-                    holdingbranch => { '-in' => ['rstore','wrhse'] },
+                    itemcallnumber => { '-in' => \@call_numbers },
+                    holdingbranch  => { '-in' => ['rstore','wrhse'] },
                     withdrawn => 1
                 },
-                { order_by => [ \['SUBSTRING_INDEX(me.stocknumber," ",1)'], \['SUBSTRING_INDEX(me.stocknumber," ",-1)']     ] }
+                { order_by => [ \['SUBSTRING_INDEX(me.stocknumber," ",1)'], \['SUBSTRING_INDEX(me.stocknumber," ",-1)'] ] }
             );
             push (@items, @found_items) if @found_items;
-        }
+#        }
         $template->param( items => \@items );
 
     }
