@@ -306,7 +306,7 @@ sub discard {
 #        foreach my $call_number ( @call_numbers) {
             my @found_items = Koha::Items->search({
                     itemcallnumber => { '-in' => \@call_numbers },
-                    holdingbranch  => { '-in' => ['rstore','wrhse'] },
+                    holdingbranch  => { '-in' => ['rstor','wrhse'] },
                     withdrawn => 1
                 },
                 { order_by => [ \['SUBSTRING_INDEX(me.stocknumber," ",1)'], \['SUBSTRING_INDEX(me.stocknumber," ",-1)'] ] }
