@@ -49,11 +49,11 @@
     <table border=1>
       <thead>
         <tr>
-          <th>Stocknumber</th>
-          <th>Callnumber</th>
-          <th>Enumchron</th>
-          <th>Title</th>
+          <th>LSC Location</th>
           <th>Barcode</th>
+          <th>Callnumber</th>
+          <th>Volume</th>
+          <th>Title</th>
           <th>Status</th>
           <th>Transit status</th>
         </tr>
@@ -63,10 +63,10 @@
         [% FOREACH item IN items %]
           <tr>
             <td>[% item.stocknumber %]</td>
+            <td>[% item.barcode %]</td>
             <td>[% item.itemcallnumber %]</td>
             <td>[% item.enumchron %]</td>
-            <td>[% item.biblio.title %]</td>
-            <td>[% item.barcode %]</td>
+            <td>[% item.biblio.title.substr(0,20) %]</td>
             <td>
                 [%- IF item.itemlost -%] Lost [%- END- %]
                 [%- IF item.withdrawn -%] Withdrawn [%- END- %]

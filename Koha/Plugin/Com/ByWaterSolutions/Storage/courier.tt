@@ -26,8 +26,8 @@
       <th>Title</th>
       <th>Author</th>
       <th>Barcode</th>
-      <th>Stocknumber</th>
-      <th>Enumchron</th>
+      <th>LSC Location</th>
+      <th>Volume</th>
       <th>Date sent</th>
     </tr>
   </thead>

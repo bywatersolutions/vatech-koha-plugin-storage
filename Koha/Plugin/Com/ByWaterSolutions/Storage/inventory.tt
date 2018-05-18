@@ -49,12 +49,12 @@
 <table border=1>
   <thead>
     <tr>
-      <th>Stocknumber</th>
+      <th>LSC Location</th>
       <th>Callnumber</th>
       <th>Barcode</th>
       <th>Public Notes</th>
       <th>Internal Notes</th>
-      <th>Enumchron</th>
+      <th>Volume</th>
       <th>Title</th>
       <th>Author</th>
       <th>Status</th>

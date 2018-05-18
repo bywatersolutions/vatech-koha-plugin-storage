@@ -41,10 +41,10 @@
 <table border=1>
   <thead>
     <tr>
-      <th>Stocknumber</th>
+      <th>LSC Location</th>
       <th>Barcode</th>
       <th>Item call number</th>
-      <th>Enumchron</th>
+      <th>Volume</th>
       <th>Title</th>
       <th>Shelving location</th>
       <th>Requester</th>

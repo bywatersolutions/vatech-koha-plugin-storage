@@ -60,13 +60,13 @@
   <thead>
     <tr>
       <th>&nbsp;</th>
-      <th>Item Stocknumber</th>
-      [% IF stocknumber && !confirm %]<th>New Stocknumber</th>[% END %]
+      <th>Item LSC Location</th>
+      [% IF stocknumber && !confirm %]<th>New LSC Location</th>[% END %]
       <th>Callnumber</th>
       <th>Barcode</th>
       <th>Public Notes</th>
       <th>Internal Notes</th>
-      <th>Enumchron</th>
+      <th>Volume</th>
       <th>Title</th>
       <th>Author</th>
     </tr>
@@ -100,12 +100,12 @@
 <table id="storage_accession" border=1>
   <thead>
     <tr>
-      <th>Item Stocknumber</th>
+      <th>Item LSC Location</th>
       <th>Callnumber</th>
       <th>Barcode</th>
       <th>Public Notes</th>
       <th>Internal Notes</th>
-      <th>Enumchron</th>
+      <th>Volume</th>
       <th>Title</th>
       <th>Author</th>
     </tr>

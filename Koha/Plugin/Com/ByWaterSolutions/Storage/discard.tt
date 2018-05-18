@@ -56,7 +56,7 @@
                 <td>[% item.enumchron %]</td>
                 <td>[% item.location %]</td>
                 <td>[% item.holdingbranch %]</td>
-                <td>[% item.biblio.title %]</td>
+                <td>[% item.biblio.title.substr(0,20) %]</td>
               </tr>
             [% END %]
           </tbody>
