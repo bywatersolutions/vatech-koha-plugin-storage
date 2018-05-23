@@ -18,7 +18,7 @@
 <div id="doc3">
     <h2>Reshelve report</h2>
     [% UNLESS items %]
-    <form method="get">
+    <form method="post">
         <input type="hidden" name="class" value="[% CLASS %]"/>
         <input type="hidden" name="method" value="[% METHOD %]"/>
         <label for="barcode_list">Enter items to report on:</label>
