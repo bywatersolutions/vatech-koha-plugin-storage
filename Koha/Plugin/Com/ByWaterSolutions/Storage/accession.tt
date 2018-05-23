@@ -18,7 +18,7 @@
 
 [% IF step_1 %]
 <div id="doc3">
-    <form method="get">
+    <form method="post">
         <input type="hidden" name="class" value="[% CLASS %]"/>
         <input type="hidden" name="method" value="[% METHOD %]"/>
         <input type="hidden" name="next_step" value="2"/>
@@ -133,6 +133,7 @@
 <script>
 $(document).ready(function() {
   var my_table = $("#storage_accession").dataTable($.extend(true, {}, dataTablesDefaults, {
+    paging: false
     // dataTablesDefaults contain default options and strings defined in datables-strings.inc
     // You can put your specific datatables options here
   }));
