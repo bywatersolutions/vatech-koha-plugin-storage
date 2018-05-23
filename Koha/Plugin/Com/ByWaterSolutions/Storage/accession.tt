@@ -24,7 +24,7 @@
         <input type="hidden" name="next_step" value="2"/>
         <fieldset>
         <label for="barcode_list">Enter barcodes to move</label><br/>
-        <textarea name="barcode_list" autocomplete="off" rows="5" required="1"></textarea><br/>
+        <textarea name="barcode_list" autocomplete="off" rows="5" ></textarea><br/>
         </fieldset>
         <fieldset>
         <label for="stocknumber">Check against shelf</label><br/>
@@ -53,7 +53,7 @@
             </tbody>
         </table>
     [% END %]
-[% IF items.size %]
+[% IF items.size || unscanned_items.size %]
 <form method="post">
         <input type="hidden" name="class" value="[% CLASS %]"/>
         <input type="hidden" name="method" value="[% METHOD %]"/>
@@ -109,6 +109,28 @@
                 Current LSC location is[% IF item.stocknumber %]: [% item.stocknumber %][% ELSE %] blank[% END %]
             [% END %]
         </td>
+      </tr>
+    [% END %]
+    [% FOREACH item IN unscanned_items %]
+      <tr style="color:Purple;">
+        <td><input class="confirm_item" type="checkbox" name="barcodes" value="[% item.barcode %]"></td>
+        <td>[% item.stocknumber %]</td>
+        [% IF stocknumber && !confirm %]<td>[% stocknumber %]</td>[% END %]
+        <td>[% item.itemcallnumber %]</td>
+        <td>[% item.barcode %]</td>
+        <td>[% item.itemnotes %]</td>
+        <td>[% item.itemnotes_nonpublic %]</td>
+        <td>[% item.enumchron %]</td>
+        <td>[% item.biblio.title %]</td>
+        <td>[% item.biblio.author %]</td>
+        <td>
+            [%- IF item.itemlost -%] Lost [%- END- %]
+            [%- IF item.withdrawn -%] Withdrawn [%- END- %]
+            [%- IF item.damaged -%] Damaged [%- END- %]
+            [%- IF item.onloan -%] Checked out [%- END- %]
+        </td>
+        <td>[% SET trans = item.get_transfer %][% IF trans %]In transit from [% Branches.GetName(trans.frombranch) %] to [% Branches.GetName(trans.tobranch) %] since [% trans.datesent %][% END %]</td>
+        <td>NOT SCANNED</td>
       </tr>
     [% END %]
   </tbody>

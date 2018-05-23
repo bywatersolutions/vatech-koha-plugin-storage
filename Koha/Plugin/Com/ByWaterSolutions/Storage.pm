@@ -343,13 +343,22 @@ sub accession {
         if ( $barcode_list ){
             my @barcodes = split /\s\n/, $barcode_list;
             my @items = Koha::Items->search({ barcode => { -in => \@barcodes } });
-            $template->param( items => \@items);
+            my @unscanned_items = Koha::Items->search({ stocknumber => $stocknumber, barcode => { -not_in => \@barcodes } });
+            $template->param(
+                items => \@items,
+                unscanned_items => \@unscanned_items
+            );
             my %found = map { lc $_->barcode => 1 } @items;
             my @not_found;
             foreach my $barcode ( @barcodes ){
                push (@not_found, $barcode) unless defined $found{lc $barcode};
             }
             $template->param( not_found => \@not_found );
+        } else {
+            my @unscanned_items = Koha::Items->search({ stocknumber => $stocknumber });
+            $template->param(
+                unscanned_items => \@unscanned_items
+            );
         }
         $template->param(step_2 => 1);
         $template->param(stocknumber => $stocknumber);
