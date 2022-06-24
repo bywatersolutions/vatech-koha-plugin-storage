@@ -7,21 +7,24 @@ use Modern::Perl;
 use base qw(Koha::Plugins::Base);
 
 ## We will also need to include any Koha libraries we want to access
-use C4::Context;
-use C4::Members;
 use C4::Auth;
+use C4::ClassSource;
+use C4::Context;
+use C4::Installer qw(TableExists);
+use C4::Members;
+
+use Koha::Account;
+use Koha::Account::Lines;
 use Koha::DateUtils;
+use Koha::Items;
 use Koha::Libraries;
 use Koha::Patron::Categories;
-use Koha::Account;
-use Koha::Items;
-use Koha::Account::Lines;
-use C4::ClassSource;
-use MARC::Record;
+
 use Cwd qw(abs_path);
-use URI::Escape qw(uri_unescape);
-use LWP::UserAgent;
 use List::MoreUtils qw/uniq/;
+use LWP::UserAgent;
+use MARC::Record;
+use URI::Escape qw(uri_unescape);
 
 ## Here we set our plugin version
 our $VERSION = "{VERSION}";
@@ -118,11 +121,14 @@ sub install() {
 
     my $table = $self->get_qualified_table_name('mytable');
 
-    return C4::Context->dbh->do( "
-        CREATE TABLE  $table (
-            `borrowernumber` INT( 11 ) NOT NULL
-        ) ENGINE = INNODB;
-    " );
+    unless( TableExists( $table ) ){
+        return C4::Context->dbh->do( "
+            CREATE TABLE  $table (
+                `borrowernumber` INT( 11 ) NOT NULL
+            ) ENGINE = INNODB;
+        " );
+    }
+    return 1;
 }
 
 ## This method will be run just before the plugin files are deleted
