@@ -15,7 +15,7 @@ use C4::Members;
 
 use Koha::Account;
 use Koha::Account::Lines;
-use Koha::DateUtils;
+use Koha::DateUtils qw(dt_from_string);
 use Koha::Items;
 use Koha::Libraries;
 use Koha::Patron::Categories;
