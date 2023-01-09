@@ -183,7 +183,7 @@ sub courier {
     my $template = $self->get_template({ file => $filename });
 
     $template->param(
-        date_ran     => dt_from_string(),
+        date_ran     => Koha::DateUtils::dt_from_string(),
         results_loop => \@results,
     );
 
@@ -219,7 +219,7 @@ sub pull_list {
     my $template = $self->get_template({ file => $filename });
 
     $template->param(
-        date_ran     => dt_from_string(),
+        date_ran     => Koha::DateUtils::dt_from_string(),
         results_loop => \@results,
         branch => $branch,
         num_rows => $sth->rows,
@@ -242,7 +242,7 @@ sub reshelve {
         my @items = Koha::Items->search(
             { barcode => { -in => \@barcodes } },
             { order_by => [ \['SUBSTRING_INDEX(me.stocknumber," ",1)'], \['SUBSTRING_INDEX(me.stocknumber," ",-1)'] ] }
-        );
+        )->as_list;
         $template->param( items => \@items);
         my %found = map { lc $_->barcode => 1 } @items;
         my @not_found;
@@ -253,7 +253,7 @@ sub reshelve {
 
     }
 
-    $template->param( date_ran => dt_from_string() );
+    $template->param( date_ran => Koha::DateUtils::dt_from_string() );
 
     print $template->output();
 }
@@ -269,8 +269,8 @@ sub inventory {
     my $barcode_list = $cgi->param('barcode_list');
     if( $barcode_list ) {
         my @barcodes = split /\s\n/, $barcode_list;
-        my @items = Koha::Items->search({ barcode => { -in => \@barcodes } });
-        my @unscanned_items = Koha::Items->search({ stocknumber => $stocknumber, barcode => { -not_in => \@barcodes } });
+        my @items = Koha::Items->search({ barcode => { -in => \@barcodes } })->as_list;
+        my @unscanned_items = Koha::Items->search({ stocknumber => $stocknumber, barcode => { -not_in => \@barcodes } })->as_list;
         $template->param( items => \@items, unscanned_items => \@unscanned_items );
         my %found = map { lc $_->barcode => 1 } @items;
         my @not_found;
@@ -279,11 +279,11 @@ sub inventory {
         }
         $template->param( not_found => \@not_found );
     } elsif ($stocknumber) {
-        my @items = Koha::Items->search({ stocknumber => $stocknumber });
+        my @items = Koha::Items->search({ stocknumber => $stocknumber })->as_list;
         $template->param( items => \@items, list_all => 1 );
     }
 
-    $template->param( date_ran => dt_from_string(), stocknumber => $stocknumber );
+    $template->param( date_ran => Koha::DateUtils::dt_from_string(), stocknumber => $stocknumber );
 
     print $template->output();
 }
@@ -298,7 +298,7 @@ sub discard {
     my $filename;
     if ( $out_csv ) {
         $filename = 'discard_csv.tt';
-        my $filedate = output_pref({dt=>dt_from_string(),dateonly=>1,dateformat=>'sql'});
+        my $filedate = output_pref({dt=>Koha::DateUtils::dt_from_string(),dateonly=>1,dateformat=>'sql'});
         print $cgi->header( -attachment => 'discard_list'.$filedate.'.csv' ) if $out_csv;
     } else {
         print $cgi->header();
@@ -316,7 +316,7 @@ sub discard {
                     withdrawn => 1
                 },
                 { order_by => [ \['SUBSTRING_INDEX(me.stocknumber," ",1)'], \['SUBSTRING_INDEX(me.stocknumber," ",-1)'] ] }
-            );
+            )->as_list;
             push (@items, @found_items) if @found_items;
 #        }
         $template->param( items => \@items );
@@ -339,7 +339,7 @@ sub accession {
     print $cgi->header();
     my $filename = 'accession.tt';
     my $template = $self->get_template({ file => $filename });
-    $template->param( date_ran => dt_from_string() );
+    $template->param( date_ran => Koha::DateUtils::dt_from_string() );
     unless ($next_step) {
         $template->param(step_1 => 1);
         print $template->output();
@@ -348,8 +348,8 @@ sub accession {
         my $stocknumber = $cgi->param('stocknumber');
         if ( $barcode_list ){
             my @barcodes = split /\s\n/, $barcode_list;
-            my @items = Koha::Items->search({ barcode => { -in => \@barcodes } });
-            my @unscanned_items = Koha::Items->search({ stocknumber => $stocknumber, barcode => { -not_in => \@barcodes } });
+            my @items = Koha::Items->search({ barcode => { -in => \@barcodes } })->as_list;
+            my @unscanned_items = Koha::Items->search({ stocknumber => $stocknumber, barcode => { -not_in => \@barcodes } })->as_list;
             $template->param(
                 items => \@items,
                 unscanned_items => \@unscanned_items
@@ -361,7 +361,7 @@ sub accession {
             }
             $template->param( not_found => \@not_found );
         } else {
-            my @unscanned_items = Koha::Items->search({ stocknumber => $stocknumber });
+            my @unscanned_items = Koha::Items->search({ stocknumber => $stocknumber })->as_list;
             $template->param(
                 unscanned_items => \@unscanned_items
             );
